@@ -230,7 +230,7 @@ onMounted(() => {
     <el-card shadow="hover" style="margin-bottom: 20px;">
       <template #header>
         <div class="turnover-header">
-          <span>库存周转率报表</span>
+          <span>库存周转率报表（仅统计实际出库）</span>
           <div class="turnover-actions">
             <el-date-picker
               v-model="selectedMonth"
@@ -255,7 +255,7 @@ onMounted(() => {
       <el-table :data="turnoverData" border style="width: 100%;" height="400">
         <el-table-column prop="code" label="物资编号" />
         <el-table-column prop="name" label="物资名称" />
-        <el-table-column prop="outboundTotal" label="出库总量" sortable />
+        <el-table-column prop="outboundTotal" label="实际出库总量" sortable />
         <el-table-column prop="avgStock" label="平均库存量" sortable />
         <el-table-column prop="turnoverRate" label="周转率" sortable />
       </el-table>

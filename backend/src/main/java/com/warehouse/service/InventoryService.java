@@ -25,11 +25,15 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class InventoryService {
+    private static final List<OutboundStatus> EFFECTIVE_OUTBOUND_STATUSES = List.of(
+            OutboundStatus.COMPLETED,
+            OutboundStatus.APPROVED
+    );
+
     private final InboundRecordRepository inboundRecordRepository;
     private final OutboundRecordRepository outboundRecordRepository;
     private final MaterialRepository materialRepository;
@@ -167,12 +171,12 @@ public class InventoryService {
             shelfRepository.save(shelf);
         }
 
-        record.setStatus(OutboundStatus.APPROVED);
+        record.setStatus(OutboundStatus.COMPLETED);
         OutboundRecord saved = outboundRecordRepository.save(record);
 
         notificationService.sendNotificationToAllUsersAsync(
-                "出库审批通过",
-                "物资「" + material.getName() + "」出库申请已批准，数量：" + record.getQuantity(),
+                "出库已完成",
+                "物资「" + material.getName() + "」出库申请已批准并完成出库，数量：" + record.getQuantity(),
                 "SUCCESS",
                 "/inventory/records"
         );
@@ -283,6 +287,17 @@ public class InventoryService {
         return getAllOutboundRecords();
     }
 
+    private List<OutboundRecord> resolveEffectiveOutboundRecords(LocalDateTime startDate, LocalDateTime endDate) {
+        if (startDate != null && endDate != null) {
+            return outboundRecordRepository.findByStatusesAndOutboundTimeBetween(EFFECTIVE_OUTBOUND_STATUSES, startDate, endDate);
+        } else if (startDate != null) {
+            return outboundRecordRepository.findByStatusesAndOutboundTimeAfterDate(EFFECTIVE_OUTBOUND_STATUSES, startDate);
+        } else if (endDate != null) {
+            return outboundRecordRepository.findByStatusesAndOutboundTimeBeforeDate(EFFECTIVE_OUTBOUND_STATUSES, endDate);
+        }
+        return outboundRecordRepository.findByStatusInOrderByOutboundTimeDesc(EFFECTIVE_OUTBOUND_STATUSES);
+    }
+
     public byte[] exportRecordsCsv(String type, LocalDateTime startDate, LocalDateTime endDate) throws IOException {
         StringBuilder sb = new StringBuilder();
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -302,7 +317,7 @@ public class InventoryService {
                 sb.append(csvEscape(r.getRemark() != null ? r.getRemark() : "")).append('\n');
             }
         } else {
-            List<OutboundRecord> records = resolveOutboundRecords(startDate, endDate);
+            List<OutboundRecord> records = resolveEffectiveOutboundRecords(startDate, endDate);
             sb.append("\uFEFF");
             sb.append("出库单号,物资编号,物资名称,数量,单价,出库时间,领用部门,备注\n");
             for (OutboundRecord r : records) {
@@ -346,7 +361,10 @@ public class InventoryService {
             }
         }
 
-        List<Object[]> outboundTotals = outboundRecordRepository.findDailyOutboundTotals(startDateTime);
+        List<Object[]> outboundTotals = outboundRecordRepository.findDailyOutboundTotalsByStatuses(
+                startDateTime,
+                EFFECTIVE_OUTBOUND_STATUSES
+        );
         for (Object[] row : outboundTotals) {
             LocalDate date = ((java.sql.Date) row[0]).toLocalDate();
             long total = ((Number) row[1]).longValue();
@@ -374,7 +392,11 @@ public class InventoryService {
         List<Material> allMaterials = materialRepository.findAll();
 
         Map<Long, Long> outboundMap = new HashMap<>();
-        for (Object[] row : outboundRecordRepository.findMonthlyOutboundByMaterial(start, end)) {
+        for (Object[] row : outboundRecordRepository.findMonthlyOutboundByMaterialAndStatuses(
+                start,
+                end,
+                EFFECTIVE_OUTBOUND_STATUSES
+        )) {
             Long materialId = ((Number) row[0]).longValue();
             Long total = ((Number) row[1]).longValue();
             outboundMap.put(materialId, total);

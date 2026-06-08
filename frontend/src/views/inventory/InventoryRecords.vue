@@ -137,16 +137,14 @@ onMounted(() => {
               <el-tag
                 :type="
                   scope.row.status === 'PENDING' ? 'warning' :
-                  scope.row.status === 'APPROVED' ? 'success' :
-                  scope.row.status === 'REJECTED' ? 'danger' :
-                  scope.row.status === 'COMPLETED' ? 'info' : 'info'
+                  scope.row.status === 'APPROVED' || scope.row.status === 'COMPLETED' ? 'success' :
+                  scope.row.status === 'REJECTED' ? 'danger' : 'info'
                 "
               >
                 {{
                   scope.row.status === 'PENDING' ? '待审批' :
-                  scope.row.status === 'APPROVED' ? '已批准' :
-                  scope.row.status === 'REJECTED' ? '已拒绝' :
-                  scope.row.status === 'COMPLETED' ? '已完成' : scope.row.status
+                  scope.row.status === 'APPROVED' || scope.row.status === 'COMPLETED' ? '已出库' :
+                  scope.row.status === 'REJECTED' ? '已拒绝' : scope.row.status
                 }}
               </el-tag>
             </template>

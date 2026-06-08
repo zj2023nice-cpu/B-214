@@ -119,9 +119,9 @@ const initLineChart = () => {
   if (lineChart) lineChart.dispose();
   lineChart = echarts.init(lineChartRef.value);
   lineChart.setOption({
-    title: { text: '近7日出入库趋势', left: 'center' },
+    title: { text: '近7日实际出入库趋势', left: 'center' },
     tooltip: { trigger: 'axis' },
-    legend: { data: ['入库', '出库'], bottom: '0%' },
+    legend: { data: ['入库', '实际出库'], bottom: '0%' },
     grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
     xAxis: {
       type: 'category',
@@ -138,7 +138,7 @@ const initLineChart = () => {
         itemStyle: { color: '#67C23A' }
       },
       {
-        name: '出库',
+        name: '实际出库',
         type: 'line',
         smooth: true,
         data: trendData.value.map(item => item.outboundQuantity),

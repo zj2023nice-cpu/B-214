@@ -20,13 +20,13 @@ const fetchPending = async () => {
 const handleApprove = async (row: any) => {
   try {
     await ElMessageBox.confirm(
-      `确认批准出库申请「${row.serialNo}」？批准后将扣减库存。`,
+      `确认批准出库申请「${row.serialNo}」？批准后将立即扣减库存并完成出库。`,
       '审批确认',
       { confirmButtonText: '确认批准', cancelButtonText: '取消', type: 'warning' }
     );
     const res: any = await axios.post(`/inventory/outbound/approve/${row.id}`);
     if (res.code === 200) {
-      ElMessage.success('审批通过，库存已扣减');
+      ElMessage.success('审批通过，已完成出库并扣减库存');
       fetchPending();
     }
   } catch {}
