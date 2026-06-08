@@ -2,11 +2,15 @@ server:
   port: 8080
 
 file:
-  upload-dir: ./uploads
+  upload-dir: backend/src/main/resources/static/uploads
 
 spring:
   application:
     name: warehouse-system
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 10MB
   datasource:
     url: jdbc:mysql://db:3306/warehouse_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&useUnicode=true&characterEncoding=utf-8
     username: root
