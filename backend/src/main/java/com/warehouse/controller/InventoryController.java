@@ -3,6 +3,7 @@ package com.warehouse.controller;
 import com.warehouse.annotation.OperationLog;
 import com.warehouse.annotation.RequireRole;
 import com.warehouse.common.ApiResponse;
+import com.warehouse.dto.BatchDeleteResult;
 import com.warehouse.dto.DailyTrendDTO;
 import com.warehouse.dto.DashboardStatsDTO;
 import com.warehouse.dto.TurnoverRateDTO;
@@ -98,6 +99,20 @@ public class InventoryController {
             return ApiResponse.success(inventoryService.getOutboundRecordsBeforeDate(endDate.atTime(23, 59, 59)));
         }
         return ApiResponse.success(inventoryService.getAllOutboundRecords());
+    }
+
+    @DeleteMapping("/records/inbound/batch")
+    @RequireRole("ADMIN")
+    @OperationLog(type = OperationType.DELETE, description = "批量删除入库记录", target = "库存")
+    public ApiResponse<BatchDeleteResult> batchDeleteInboundRecords(@RequestBody List<Long> ids) {
+        return ApiResponse.success(inventoryService.batchDeleteInboundRecords(ids));
+    }
+
+    @DeleteMapping("/records/outbound/batch")
+    @RequireRole("ADMIN")
+    @OperationLog(type = OperationType.DELETE, description = "批量删除出库记录", target = "库存")
+    public ApiResponse<BatchDeleteResult> batchDeleteOutboundRecords(@RequestBody List<Long> ids) {
+        return ApiResponse.success(inventoryService.batchDeleteOutboundRecords(ids));
     }
 
     @GetMapping("/records/export")

@@ -8,6 +8,9 @@ const dialogVisible = ref(false);
 const shelfDialogVisible = ref(false);
 const currentWarehouseId = ref<number | null>(null);
 const shelves = ref([]);
+const warehouseTableRef = ref();
+const selectedWarehouses = ref<any[]>([]);
+const batchDeleting = ref(false);
 const form = ref({
   code: '',
   name: '',
@@ -54,6 +57,43 @@ const handleDelete = (id: number) => {
     if (res.code === 200) {
       ElMessage.success('删除成功');
       fetchWarehouses();
+    }
+  });
+};
+
+const handleSelectionChange = (selection: any[]) => {
+  selectedWarehouses.value = selection;
+};
+
+const handleBatchDelete = () => {
+  if (selectedWarehouses.value.length === 0) {
+    ElMessage.warning('请先选择要删除的记录');
+    return;
+  }
+  ElMessageBox.confirm(`确定删除选中的 ${selectedWarehouses.value.length} 条记录吗？`, '批量删除', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  }).then(async () => {
+    batchDeleting.value = true;
+    try {
+      const ids = selectedWarehouses.value.map((item: any) => item.id);
+      const res: any = await axios.delete('/warehouses/batch', { data: ids });
+      if (res.code === 200) {
+        const result = res.data;
+        if (result.failureCount === 0) {
+          ElMessage.success(`删除成功，共删除 ${result.successCount} 条记录`);
+        } else {
+          ElMessage.warning(`操作完成，成功 ${result.successCount} 条，失败 ${result.failureCount} 条`);
+        }
+        selectedWarehouses.value = [];
+        warehouseTableRef.value?.clearSelection();
+        fetchWarehouses();
+      }
+    } catch {
+      ElMessage.error('批量删除失败');
+    } finally {
+      batchDeleting.value = false;
     }
   });
 };
@@ -143,9 +183,13 @@ onMounted(() => {
   <div class="warehouse-container">
     <div class="header-actions">
       <el-button type="primary" @click="handleAdd">新增仓库</el-button>
+      <el-button type="danger" :disabled="selectedWarehouses.length === 0" :loading="batchDeleting" @click="handleBatchDelete">
+        批量删除{{ selectedWarehouses.length > 0 ? `(${selectedWarehouses.length})` : '' }}
+      </el-button>
     </div>
 
-    <el-table :data="warehouses" style="width: 100%; margin-top: 20px;" border>
+    <el-table ref="warehouseTableRef" :data="warehouses" style="width: 100%; margin-top: 20px;" border @selection-change="handleSelectionChange">
+      <el-table-column type="selection" width="55" />
       <el-table-column prop="id" label="ID" width="60" />
       <el-table-column prop="code" label="仓库编号" />
       <el-table-column prop="name" label="仓库名称" />

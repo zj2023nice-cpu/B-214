@@ -2,13 +2,18 @@
 import { ref, onMounted } from 'vue';
 import axios from '../../api/axios';
 import dayjs from 'dayjs';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 
 const activeTab = ref('inbound');
 const inboundRecords = ref([]);
 const outboundRecords = ref([]);
 const dateRange = ref<[string, string] | null>(null);
 const exporting = ref(false);
+const inboundTableRef = ref();
+const outboundTableRef = ref();
+const selectedInbound = ref<any[]>([]);
+const selectedOutbound = ref<any[]>([]);
+const batchDeleting = ref(false);
 
 const fetchInbound = async () => {
   const params: any = {};
@@ -75,6 +80,80 @@ const formatDate = (date: string) => {
   return dayjs(date).format('YYYY-MM-DD HH:mm:ss');
 };
 
+const handleInboundSelectionChange = (selection: any[]) => {
+  selectedInbound.value = selection;
+};
+
+const handleOutboundSelectionChange = (selection: any[]) => {
+  selectedOutbound.value = selection;
+};
+
+const handleBatchDeleteInbound = () => {
+  if (selectedInbound.value.length === 0) {
+    ElMessage.warning('请先选择要删除的记录');
+    return;
+  }
+  ElMessageBox.confirm(`确定删除选中的 ${selectedInbound.value.length} 条记录吗？`, '批量删除', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  }).then(async () => {
+    batchDeleting.value = true;
+    try {
+      const ids = selectedInbound.value.map((item: any) => item.id);
+      const res: any = await axios.delete('/inventory/records/inbound/batch', { data: ids });
+      if (res.code === 200) {
+        const result = res.data;
+        if (result.failureCount === 0) {
+          ElMessage.success(`删除成功，共删除 ${result.successCount} 条记录`);
+        } else {
+          ElMessage.warning(`操作完成，成功 ${result.successCount} 条，失败 ${result.failureCount} 条`);
+        }
+        selectedInbound.value = [];
+        inboundTableRef.value?.clearSelection();
+        fetchInbound();
+      }
+    } catch {
+      ElMessage.error('批量删除失败');
+    } finally {
+      batchDeleting.value = false;
+    }
+  });
+};
+
+const handleBatchDeleteOutbound = () => {
+  if (selectedOutbound.value.length === 0) {
+    ElMessage.warning('请先选择要删除的记录');
+    return;
+  }
+  ElMessageBox.confirm(`确定删除选中的 ${selectedOutbound.value.length} 条记录吗？`, '批量删除', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  }).then(async () => {
+    batchDeleting.value = true;
+    try {
+      const ids = selectedOutbound.value.map((item: any) => item.id);
+      const res: any = await axios.delete('/inventory/records/outbound/batch', { data: ids });
+      if (res.code === 200) {
+        const result = res.data;
+        if (result.failureCount === 0) {
+          ElMessage.success(`删除成功，共删除 ${result.successCount} 条记录`);
+        } else {
+          ElMessage.warning(`操作完成，成功 ${result.successCount} 条，失败 ${result.failureCount} 条`);
+        }
+        selectedOutbound.value = [];
+        outboundTableRef.value?.clearSelection();
+        fetchOutbound();
+      }
+    } catch {
+      ElMessage.error('批量删除失败');
+    } finally {
+      batchDeleting.value = false;
+    }
+  });
+};
+
 const handleTabChange = () => {
   if (activeTab.value === 'inbound') fetchInbound();
   else fetchOutbound();
@@ -102,10 +181,29 @@ onMounted(() => {
       <el-button type="success" :loading="exporting" :disabled="exporting" @click="handleExport">
         {{ exporting ? '导出中...' : '导出' }}
       </el-button>
+      <el-button
+        v-if="activeTab === 'inbound'"
+        type="danger"
+        :disabled="selectedInbound.length === 0"
+        :loading="batchDeleting"
+        @click="handleBatchDeleteInbound"
+      >
+        批量删除{{ selectedInbound.length > 0 ? `(${selectedInbound.length})` : '' }}
+      </el-button>
+      <el-button
+        v-else
+        type="danger"
+        :disabled="selectedOutbound.length === 0"
+        :loading="batchDeleting"
+        @click="handleBatchDeleteOutbound"
+      >
+        批量删除{{ selectedOutbound.length > 0 ? `(${selectedOutbound.length})` : '' }}
+      </el-button>
     </div>
     <el-tabs v-model="activeTab" @tab-change="handleTabChange">
       <el-tab-pane label="入库记录" name="inbound">
-        <el-table :data="inboundRecords" border style="width: 100%">
+        <el-table ref="inboundTableRef" :data="inboundRecords" border style="width: 100%" @selection-change="handleInboundSelectionChange">
+          <el-table-column type="selection" width="55" />
           <el-table-column prop="serialNo" label="入库单号" width="180" />
           <el-table-column label="物资名称">
             <template #default="scope">
@@ -124,7 +222,8 @@ onMounted(() => {
         </el-table>
       </el-tab-pane>
       <el-tab-pane label="出库记录" name="outbound">
-        <el-table :data="outboundRecords" border style="width: 100%">
+        <el-table ref="outboundTableRef" :data="outboundRecords" border style="width: 100%" @selection-change="handleOutboundSelectionChange">
+          <el-table-column type="selection" width="55" />
           <el-table-column prop="serialNo" label="出库单号" width="180" />
           <el-table-column label="物资名称">
             <template #default="scope">

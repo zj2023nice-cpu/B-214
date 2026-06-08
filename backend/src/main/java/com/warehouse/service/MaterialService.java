@@ -1,5 +1,7 @@
 package com.warehouse.service;
 
+import com.warehouse.dto.BatchDeleteFailureDetail;
+import com.warehouse.dto.BatchDeleteResult;
 import com.warehouse.dto.ImportFailureDetail;
 import com.warehouse.dto.ImportResult;
 import com.warehouse.entity.Category;
@@ -105,6 +107,29 @@ public class MaterialService {
 
     public void deleteMaterial(Long id) {
         materialRepository.deleteById(id);
+    }
+
+    @Transactional
+    public BatchDeleteResult batchDeleteMaterials(List<Long> ids) {
+        BatchDeleteResult result = new BatchDeleteResult();
+        result.setTotalCount(ids.size());
+        List<Long> validIds = new ArrayList<>();
+        for (Long id : ids) {
+            if (!materialRepository.existsById(id)) {
+                result.getFailures().add(new BatchDeleteFailureDetail(id, "物资不存在"));
+            } else {
+                validIds.add(id);
+            }
+        }
+        if (!result.getFailures().isEmpty()) {
+            result.setSuccessCount(0);
+            result.setFailureCount(result.getFailures().size());
+            return result;
+        }
+        materialRepository.deleteAllById(ids);
+        result.setSuccessCount(ids.size());
+        result.setFailureCount(0);
+        return result;
     }
 
     public List<Material> getLowStockMaterials(Integer threshold) {

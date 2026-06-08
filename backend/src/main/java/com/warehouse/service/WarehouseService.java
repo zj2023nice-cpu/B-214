@@ -1,5 +1,7 @@
 package com.warehouse.service;
 
+import com.warehouse.dto.BatchDeleteFailureDetail;
+import com.warehouse.dto.BatchDeleteResult;
 import com.warehouse.entity.Shelf;
 import com.warehouse.entity.Warehouse;
 import com.warehouse.repository.ShelfRepository;
@@ -8,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -37,6 +40,26 @@ public class WarehouseService {
 
     public void deleteWarehouse(Long id) {
         warehouseRepository.deleteById(id);
+    }
+
+    @Transactional
+    public BatchDeleteResult batchDeleteWarehouses(List<Long> ids) {
+        BatchDeleteResult result = new BatchDeleteResult();
+        result.setTotalCount(ids.size());
+        for (Long id : ids) {
+            if (!warehouseRepository.existsById(id)) {
+                result.getFailures().add(new BatchDeleteFailureDetail(id, "仓库不存在"));
+            }
+        }
+        if (!result.getFailures().isEmpty()) {
+            result.setSuccessCount(0);
+            result.setFailureCount(result.getFailures().size());
+            return result;
+        }
+        warehouseRepository.deleteAllById(ids);
+        result.setSuccessCount(ids.size());
+        result.setFailureCount(0);
+        return result;
     }
     
     public Warehouse getWarehouseById(Long id) {

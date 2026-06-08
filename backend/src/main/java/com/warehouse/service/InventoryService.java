@@ -1,5 +1,7 @@
 package com.warehouse.service;
 
+import com.warehouse.dto.BatchDeleteFailureDetail;
+import com.warehouse.dto.BatchDeleteResult;
 import com.warehouse.dto.DailyTrendDTO;
 import com.warehouse.dto.DashboardStatsDTO;
 import com.warehouse.dto.TurnoverRateDTO;
@@ -208,6 +210,46 @@ public class InventoryService {
         );
 
         return saved;
+    }
+
+    @Transactional
+    public BatchDeleteResult batchDeleteInboundRecords(List<Long> ids) {
+        BatchDeleteResult result = new BatchDeleteResult();
+        result.setTotalCount(ids.size());
+        for (Long id : ids) {
+            if (!inboundRecordRepository.existsById(id)) {
+                result.getFailures().add(new BatchDeleteFailureDetail(id, "入库记录不存在"));
+            }
+        }
+        if (!result.getFailures().isEmpty()) {
+            result.setSuccessCount(0);
+            result.setFailureCount(result.getFailures().size());
+            return result;
+        }
+        inboundRecordRepository.deleteAllById(ids);
+        result.setSuccessCount(ids.size());
+        result.setFailureCount(0);
+        return result;
+    }
+
+    @Transactional
+    public BatchDeleteResult batchDeleteOutboundRecords(List<Long> ids) {
+        BatchDeleteResult result = new BatchDeleteResult();
+        result.setTotalCount(ids.size());
+        for (Long id : ids) {
+            if (!outboundRecordRepository.existsById(id)) {
+                result.getFailures().add(new BatchDeleteFailureDetail(id, "出库记录不存在"));
+            }
+        }
+        if (!result.getFailures().isEmpty()) {
+            result.setSuccessCount(0);
+            result.setFailureCount(result.getFailures().size());
+            return result;
+        }
+        outboundRecordRepository.deleteAllById(ids);
+        result.setSuccessCount(ids.size());
+        result.setFailureCount(0);
+        return result;
     }
 
     private void checkStockAlert(Long materialId) {

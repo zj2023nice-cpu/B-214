@@ -7,7 +7,6 @@ import type { UploadProps } from 'element-plus';
 
 const materials = ref([]);
 const categories = ref([]);
-const suppliers = ref([]);
 const dialogVisible = ref(false);
 const importResultVisible = ref(false);
 const importResult = ref<any>(null);
@@ -16,6 +15,9 @@ const editingId = ref<number | null>(null);
 const imageList = ref<any[]>([]);
 const previewVisible = ref(false);
 const previewUrl = ref('');
+const materialTableRef = ref();
+const selectedMaterials = ref<any[]>([]);
+const batchDeleting = ref(false);
 
 const keyword = ref('');
 const filterCategoryId = ref<number | null>(null);
@@ -168,6 +170,43 @@ const handleDelete = (id: number) => {
   });
 };
 
+const handleSelectionChange = (selection: any[]) => {
+  selectedMaterials.value = selection;
+};
+
+const handleBatchDelete = () => {
+  if (selectedMaterials.value.length === 0) {
+    ElMessage.warning('请先选择要删除的记录');
+    return;
+  }
+  ElMessageBox.confirm(`确定删除选中的 ${selectedMaterials.value.length} 条记录吗？`, '批量删除', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  }).then(async () => {
+    batchDeleting.value = true;
+    try {
+      const ids = selectedMaterials.value.map((item: any) => item.id);
+      const res: any = await axios.delete('/materials/batch', { data: ids });
+      if (res.code === 200) {
+        const result = res.data;
+        if (result.failureCount === 0) {
+          ElMessage.success(`删除成功，共删除 ${result.successCount} 条记录`);
+        } else {
+          ElMessage.warning(`操作完成，成功 ${result.successCount} 条，失败 ${result.failureCount} 条`);
+        }
+        selectedMaterials.value = [];
+        materialTableRef.value?.clearSelection();
+        fetchMaterials();
+      }
+    } catch {
+      ElMessage.error('批量删除失败');
+    } finally {
+      batchDeleting.value = false;
+    }
+  });
+};
+
 const handleImportUpload = async (options: any) => {
   const formData = new FormData();
   formData.append('file', options.file);
@@ -296,6 +335,9 @@ onMounted(() => {
         <el-option label="预警" value="warning" />
       </el-select>
       <div style="flex: 1;" />
+      <el-button type="danger" :disabled="selectedMaterials.length === 0" :loading="batchDeleting" @click="handleBatchDelete">
+        批量删除{{ selectedMaterials.length > 0 ? `(${selectedMaterials.length})` : '' }}
+      </el-button>
       <el-button type="primary" @click="handleAdd">新增物资</el-button>
       <el-upload
         :show-file-list="false"
@@ -309,11 +351,14 @@ onMounted(() => {
     </div>
 
     <el-table 
+      ref="materialTableRef"
       :data="materials" 
       style="width: 100%; margin-top: 20px;" 
       border 
       :row-class-name="tableRowClassName"
+      @selection-change="handleSelectionChange"
     >
+      <el-table-column type="selection" width="55" />
       <el-table-column prop="code" label="物资编号" width="120" />
       <el-table-column prop="name" label="物资名称" width="150" />
       <el-table-column label="图片" width="100">

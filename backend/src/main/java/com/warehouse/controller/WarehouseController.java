@@ -3,6 +3,7 @@ package com.warehouse.controller;
 import com.warehouse.annotation.OperationLog;
 import com.warehouse.annotation.RequireRole;
 import com.warehouse.common.ApiResponse;
+import com.warehouse.dto.BatchDeleteResult;
 import com.warehouse.entity.OperationType;
 import com.warehouse.entity.Shelf;
 import com.warehouse.entity.Warehouse;
@@ -42,6 +43,13 @@ public class WarehouseController {
     public ApiResponse<Void> delete(@PathVariable Long id) {
         warehouseService.deleteWarehouse(id);
         return ApiResponse.success(null);
+    }
+
+    @DeleteMapping("/batch")
+    @RequireRole("ADMIN")
+    @OperationLog(type = OperationType.DELETE, description = "批量删除仓库", target = "仓库")
+    public ApiResponse<BatchDeleteResult> batchDelete(@RequestBody List<Long> ids) {
+        return ApiResponse.success(warehouseService.batchDeleteWarehouses(ids));
     }
     
     // Shelf Endpoints
