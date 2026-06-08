@@ -7,6 +7,7 @@ import MaterialList from '../views/material/MaterialList.vue';
 import Inbound from '../views/inventory/Inbound.vue';
 import Outbound from '../views/inventory/Outbound.vue';
 import InventoryRecords from '../views/inventory/InventoryRecords.vue';
+import InventoryCheck from '../views/inventory/InventoryCheck.vue';
 import StockReport from '../views/report/StockReport.vue';
 import SystemSettings from '../views/settings/SystemSettings.vue';
 
@@ -57,6 +58,12 @@ const routes = [
         name: 'InventoryRecords',
         component: InventoryRecords,
         meta: { title: '出入库记录' }
+      },
+      {
+        path: 'inventory/check',
+        name: 'InventoryCheck',
+        component: InventoryCheck,
+        meta: { title: '库存盘点' }
       },
       {
         path: 'reports/stock',
