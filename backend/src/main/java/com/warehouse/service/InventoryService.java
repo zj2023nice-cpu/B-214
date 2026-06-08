@@ -6,6 +6,7 @@ import com.warehouse.entity.InboundRecord;
 import com.warehouse.entity.Material;
 import com.warehouse.entity.OutboundRecord;
 import com.warehouse.entity.Shelf;
+import com.warehouse.entity.OutboundStatus;
 import com.warehouse.entity.Warehouse;
 import com.warehouse.repository.InboundRecordRepository;
 import com.warehouse.repository.MaterialRepository;
@@ -95,6 +96,7 @@ public class InventoryService {
     @Transactional
     public OutboundRecord processOutbound(OutboundRecord record) {
         record.setOutboundTime(LocalDateTime.now());
+        record.setStatus(OutboundStatus.PENDING);
 
         Material material = materialRepository.findById(record.getMaterial().getId())
                 .orElseThrow(() -> new RuntimeException("Material not found"));
@@ -105,15 +107,6 @@ public class InventoryService {
             Warehouse warehouse = warehouseRepository.findById(record.getWarehouse().getId())
                     .orElseThrow(() -> new RuntimeException("Warehouse not found"));
             record.setWarehouse(warehouse);
-
-            warehouseInventoryService.deductFromWarehouse(
-                    warehouse.getId(), material.getId(), record.getQuantity());
-        } else {
-            if (material.getStockQuantity() < record.getQuantity()) {
-                throw new RuntimeException("Insufficient stock! Current: " + material.getStockQuantity());
-            }
-            material.setStockQuantity(material.getStockQuantity() - record.getQuantity());
-            materialRepository.save(material);
         }
 
         if (record.getShelf() != null && record.getShelf().getId() != null) {
@@ -125,6 +118,46 @@ public class InventoryService {
             if (!shelf.getWarehouse().getId().equals(record.getWarehouse().getId())) {
                 throw new RuntimeException("所选货架不属于当前仓库");
             }
+            record.setShelf(shelf);
+        }
+
+        OutboundRecord saved = outboundRecordRepository.save(record);
+
+        notificationService.sendNotificationToAllUsersAsync(
+                "出库申请",
+                "物资「" + material.getName() + "」出库申请已提交，数量：" + record.getQuantity() + "，待审批",
+                "INFO",
+                "/inventory/outbound-approval"
+        );
+
+        return saved;
+    }
+
+    @Transactional
+    public OutboundRecord approveOutbound(Long id) {
+        OutboundRecord record = outboundRecordRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Outbound record not found"));
+
+        if (record.getStatus() != OutboundStatus.PENDING) {
+            throw new RuntimeException("只能审批待审批状态的出库申请");
+        }
+
+        Material material = record.getMaterial();
+
+        if (record.getWarehouse() != null && record.getWarehouse().getId() != null) {
+            warehouseInventoryService.deductFromWarehouse(
+                    record.getWarehouse().getId(), material.getId(), record.getQuantity());
+        } else {
+            if (material.getStockQuantity() < record.getQuantity()) {
+                throw new RuntimeException("Insufficient stock! Current: " + material.getStockQuantity());
+            }
+            material.setStockQuantity(material.getStockQuantity() - record.getQuantity());
+            materialRepository.save(material);
+        }
+
+        if (record.getShelf() != null && record.getShelf().getId() != null) {
+            Shelf shelf = shelfRepository.findById(record.getShelf().getId())
+                    .orElseThrow(() -> new RuntimeException("Shelf not found"));
             int newLoad = shelf.getCurrentLoad() - record.getQuantity();
             if (newLoad < 0) {
                 throw new RuntimeException("货架承载量不足！当前承载量：" + shelf.getCurrentLoad()
@@ -132,19 +165,42 @@ public class InventoryService {
             }
             shelf.setCurrentLoad(newLoad);
             shelfRepository.save(shelf);
-            record.setShelf(shelf);
         }
 
+        record.setStatus(OutboundStatus.APPROVED);
         OutboundRecord saved = outboundRecordRepository.save(record);
 
         notificationService.sendNotificationToAllUsersAsync(
-                "出库完成",
-                "物资「" + material.getName() + "」已完成出库，数量：" + record.getQuantity(),
+                "出库审批通过",
+                "物资「" + material.getName() + "」出库申请已批准，数量：" + record.getQuantity(),
                 "SUCCESS",
                 "/inventory/records"
         );
 
         checkStockAlert(material.getId());
+
+        return saved;
+    }
+
+    @Transactional
+    public OutboundRecord rejectOutbound(Long id, String rejectReason) {
+        OutboundRecord record = outboundRecordRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Outbound record not found"));
+
+        if (record.getStatus() != OutboundStatus.PENDING) {
+            throw new RuntimeException("只能拒绝待审批状态的出库申请");
+        }
+
+        record.setStatus(OutboundStatus.REJECTED);
+        record.setRejectReason(rejectReason);
+        OutboundRecord saved = outboundRecordRepository.save(record);
+
+        notificationService.sendNotificationToAllUsersAsync(
+                "出库申请被拒绝",
+                "物资「" + record.getMaterial().getName() + "」出库申请已被拒绝，原因：" + rejectReason,
+                "WARNING",
+                "/inventory/records"
+        );
 
         return saved;
     }

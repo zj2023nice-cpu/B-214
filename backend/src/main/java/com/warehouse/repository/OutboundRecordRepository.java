@@ -1,6 +1,7 @@
 package com.warehouse.repository;
 
 import com.warehouse.entity.OutboundRecord;
+import com.warehouse.entity.OutboundStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -37,4 +38,6 @@ public interface OutboundRecordRepository extends JpaRepository<OutboundRecord, 
            "WHERE obr.outboundTime <= :endDate " +
            "ORDER BY obr.outboundTime DESC")
     List<OutboundRecord> findByOutboundTimeBeforeDate(@Param("endDate") LocalDateTime endDate);
+
+    List<OutboundRecord> findByStatusOrderByOutboundTimeDesc(OutboundStatus status);
 }

@@ -83,6 +83,7 @@ const logout = () => {
               </template>
               <el-menu-item index="/inventory/inbound">物资入库</el-menu-item>
               <el-menu-item index="/inventory/outbound">物资出库</el-menu-item>
+              <el-menu-item v-if="isAdmin" index="/inventory/outbound-approval">出库审批</el-menu-item>
               <el-menu-item index="/inventory/records">出入库记录</el-menu-item>
               <el-menu-item v-if="isAdmin" index="/inventory/check">库存盘点</el-menu-item>
               <el-menu-item index="/inventory/transfer">物资调拨</el-menu-item>

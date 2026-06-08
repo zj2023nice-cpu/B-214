@@ -6,6 +6,7 @@ import WarehouseList from '../views/warehouse/WarehouseList.vue';
 import MaterialList from '../views/material/MaterialList.vue';
 import Inbound from '../views/inventory/Inbound.vue';
 import Outbound from '../views/inventory/Outbound.vue';
+import OutboundApproval from '../views/inventory/OutboundApproval.vue';
 import InventoryRecords from '../views/inventory/InventoryRecords.vue';
 import InventoryCheck from '../views/inventory/InventoryCheck.vue';
 import TransferRecord from '../views/inventory/TransferRecord.vue';
@@ -64,6 +65,12 @@ const routes = [
         name: 'Outbound',
         component: Outbound,
         meta: { title: '物资出库', roles: ['ADMIN', 'USER'] }
+      },
+      {
+        path: 'inventory/outbound-approval',
+        name: 'OutboundApproval',
+        component: OutboundApproval,
+        meta: { title: '出库审批', roles: ['ADMIN'] }
       },
       {
         path: 'inventory/records',

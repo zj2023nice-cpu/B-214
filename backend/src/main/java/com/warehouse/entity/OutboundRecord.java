@@ -38,4 +38,14 @@ public class OutboundRecord {
     private String department;
     
     private String remark;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private OutboundStatus status = OutboundStatus.PENDING;
+
+    private String receiver;
+
+    private String purpose;
+
+    private String rejectReason;
 }

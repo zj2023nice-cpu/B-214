@@ -13,6 +13,8 @@ const form = ref({
   material: { id: null as number | null },
   quantity: 1,
   department: '',
+  receiver: '',
+  purpose: '',
   remark: ''
 });
 const currentStock = ref(0);
@@ -95,6 +97,14 @@ const handleSubmit = async () => {
     ElMessage.error('请选择物资');
     return;
   }
+  if (!form.value.receiver) {
+    ElMessage.error('请填写领用人');
+    return;
+  }
+  if (!form.value.purpose) {
+    ElMessage.error('请填写出库用途');
+    return;
+  }
   if (form.value.quantity > currentStock.value) {
     ElMessage.error(`库存不足，当前库存: ${currentStock.value}`);
     return;
@@ -106,7 +116,7 @@ const handleSubmit = async () => {
 
   const res: any = await axios.post('/inventory/outbound', payload);
   if (res.code === 200) {
-    ElMessage.success('出库成功');
+    ElMessage.success('出库申请已提交，等待审批');
     form.value = {
       serialNo: '',
       warehouse: { id: null },
@@ -114,6 +124,8 @@ const handleSubmit = async () => {
       material: { id: null },
       quantity: 1,
       department: '',
+      receiver: '',
+      purpose: '',
       remark: ''
     };
     generateSerialNo();
@@ -162,11 +174,17 @@ onMounted(() => {
         <el-form-item label="领用部门">
           <el-input v-model="form.department" placeholder="请输入领用部门" />
         </el-form-item>
+        <el-form-item label="领用人" required>
+          <el-input v-model="form.receiver" placeholder="请输入领用人" />
+        </el-form-item>
+        <el-form-item label="出库用途" required>
+          <el-input v-model="form.purpose" type="textarea" placeholder="请输入出库用途" />
+        </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="form.remark" type="textarea" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSubmit">确认出库</el-button>
+          <el-button type="primary" @click="handleSubmit">提交出库申请</el-button>
         </el-form-item>
       </el-form>
     </el-card>

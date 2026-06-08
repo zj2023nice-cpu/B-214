@@ -131,11 +131,37 @@ onMounted(() => {
               {{ scope.row.material?.name }} ({{ scope.row.material?.code }})
             </template>
           </el-table-column>
-          <el-table-column prop="quantity" label="数量" width="100" />
+          <el-table-column prop="quantity" label="数量" width="80" />
+          <el-table-column label="状态" width="100">
+            <template #default="scope">
+              <el-tag
+                :type="
+                  scope.row.status === 'PENDING' ? 'warning' :
+                  scope.row.status === 'APPROVED' ? 'success' :
+                  scope.row.status === 'REJECTED' ? 'danger' :
+                  scope.row.status === 'COMPLETED' ? 'info' : 'info'
+                "
+              >
+                {{
+                  scope.row.status === 'PENDING' ? '待审批' :
+                  scope.row.status === 'APPROVED' ? '已批准' :
+                  scope.row.status === 'REJECTED' ? '已拒绝' :
+                  scope.row.status === 'COMPLETED' ? '已完成' : scope.row.status
+                }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="receiver" label="领用人" width="100" />
+          <el-table-column prop="purpose" label="出库用途" min-width="120" />
           <el-table-column label="出库时间" width="180">
              <template #default="scope">{{ formatDate(scope.row.outboundTime) }}</template>
           </el-table-column>
-          <el-table-column prop="department" label="领用部门" width="150" />
+          <el-table-column prop="department" label="领用部门" width="120" />
+          <el-table-column prop="rejectReason" label="拒绝原因" width="150">
+            <template #default="scope">
+              {{ scope.row.rejectReason || '-' }}
+            </template>
+          </el-table-column>
           <el-table-column prop="remark" label="备注" />
         </el-table>
       </el-tab-pane>

@@ -1,12 +1,15 @@
 package com.warehouse.controller;
 
 import com.warehouse.annotation.OperationLog;
+import com.warehouse.annotation.RequireRole;
 import com.warehouse.common.ApiResponse;
 import com.warehouse.dto.DailyTrendDTO;
 import com.warehouse.dto.TurnoverRateDTO;
 import com.warehouse.entity.InboundRecord;
 import com.warehouse.entity.OperationType;
 import com.warehouse.entity.OutboundRecord;
+import com.warehouse.entity.OutboundStatus;
+import com.warehouse.repository.OutboundRecordRepository;
 import com.warehouse.service.InventoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -18,6 +21,7 @@ import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/inventory")
@@ -25,6 +29,31 @@ import java.util.List;
 @CrossOrigin(origins = "*")
 public class InventoryController {
     private final InventoryService inventoryService;
+    private final OutboundRecordRepository outboundRecordRepository;
+
+    @PostMapping("/outbound/approve/{id}")
+    @RequireRole("ADMIN")
+    @OperationLog(type = OperationType.OUTBOUND, description = "审批通过出库申请", target = "库存")
+    public ApiResponse<OutboundRecord> approveOutbound(@PathVariable Long id) {
+        return ApiResponse.success(inventoryService.approveOutbound(id));
+    }
+
+    @PostMapping("/outbound/reject/{id}")
+    @RequireRole("ADMIN")
+    @OperationLog(type = OperationType.OUTBOUND, description = "拒绝出库申请", target = "库存")
+    public ApiResponse<OutboundRecord> rejectOutbound(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        String rejectReason = body.get("rejectReason");
+        if (rejectReason == null || rejectReason.isBlank()) {
+            return ApiResponse.error(400, "拒绝原因不能为空");
+        }
+        return ApiResponse.success(inventoryService.rejectOutbound(id, rejectReason));
+    }
+
+    @GetMapping("/outbound/pending")
+    @RequireRole("ADMIN")
+    public ApiResponse<List<OutboundRecord>> getPendingOutboundRecords() {
+        return ApiResponse.success(outboundRecordRepository.findByStatusOrderByOutboundTimeDesc(OutboundStatus.PENDING));
+    }
 
     @PostMapping("/inbound")
     @OperationLog(type = OperationType.INBOUND, description = "物资入库", target = "库存")
