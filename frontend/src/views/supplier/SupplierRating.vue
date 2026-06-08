@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import axios from '../../api/axios';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { WarningFilled } from '@element-plus/icons-vue';
+import { getUser } from '../../api/auth';
 
 const suppliers = ref<any[]>([]);
 const ratingDialogVisible = ref(false);
@@ -13,7 +14,7 @@ const detailRatings = ref<any[]>([]);
 const ratingForm = ref({ rating: 0, content: '' });
 const editForm = ref({ id: 0, rating: 0, content: '' });
 const hasRated = ref(false);
-const user = JSON.parse(localStorage.getItem('user') || '{}');
+const user = getUser() || {};
 
 const fetchSuppliers = async () => {
   const res: any = await axios.get('/supplier-ratings/suppliers');

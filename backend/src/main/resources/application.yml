@@ -31,3 +31,8 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /docs
+
+jwt:
+  secret: WarehouseOsJwtSecretKey2024VeryLongSecretForHmacSha256Algorithm
+  access-token-expiration: 1800000
+  refresh-token-expiration: 604800000

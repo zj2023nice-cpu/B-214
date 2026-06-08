@@ -1,9 +1,7 @@
 package com.warehouse.aspect;
 
 import com.warehouse.annotation.RequireRole;
-import com.warehouse.entity.User;
 import com.warehouse.exception.ForbiddenException;
-import com.warehouse.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -21,8 +19,6 @@ import java.util.Arrays;
 @Component
 @RequiredArgsConstructor
 public class RoleAspect {
-
-    private final UserRepository userRepository;
 
     @Around("@within(com.warehouse.annotation.RequireRole) || @annotation(com.warehouse.annotation.RequireRole)")
     public Object checkRole(ProceedingJoinPoint joinPoint) throws Throwable {
@@ -67,17 +63,11 @@ public class RoleAspect {
         }
 
         HttpServletRequest request = attributes.getRequest();
-        String userIdHeader = request.getHeader("X-User-Id");
-        if (userIdHeader == null || userIdHeader.isEmpty()) {
-            return null;
+        Object roleAttr = request.getAttribute("role");
+        if (roleAttr != null) {
+            return (String) roleAttr;
         }
 
-        try {
-            Long userId = Long.parseLong(userIdHeader);
-            User user = userRepository.findById(userId).orElse(null);
-            return user != null ? user.getRole() : null;
-        } catch (NumberFormatException e) {
-            return null;
-        }
+        return null;
     }
 }

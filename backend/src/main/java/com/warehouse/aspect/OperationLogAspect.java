@@ -49,16 +49,21 @@ public class OperationLogAspect {
             HttpServletRequest request = attributes.getRequest();
             logEntry.setIp(getClientIp(request));
 
-            String userIdHeader = request.getHeader("X-User-Id");
-            if (userIdHeader != null && !userIdHeader.isEmpty()) {
+            Object userIdAttr = request.getAttribute("userId");
+            if (userIdAttr != null) {
                 try {
-                    Long userId = Long.parseLong(userIdHeader);
+                    Long userId = (Long) userIdAttr;
                     logEntry.setUserId(userId);
-                    User user = userRepository.findById(userId).orElse(null);
-                    if (user != null) {
-                        logEntry.setUsername(user.getUsername());
+                    Object usernameAttr = request.getAttribute("username");
+                    if (usernameAttr != null) {
+                        logEntry.setUsername((String) usernameAttr);
+                    } else {
+                        User user = userRepository.findById(userId).orElse(null);
+                        if (user != null) {
+                            logEntry.setUsername(user.getUsername());
+                        }
                     }
-                } catch (NumberFormatException ignored) {
+                } catch (ClassCastException ignored) {
                 }
             }
         }

@@ -83,11 +83,11 @@ public class SupplierRatingController {
     }
 
     private Long getCurrentUserId(HttpServletRequest request) {
-        String userIdHeader = request.getHeader("X-User-Id");
-        if (userIdHeader == null || userIdHeader.isEmpty()) {
-            throw new RuntimeException("未提供用户身份信息");
+        Object userIdAttr = request.getAttribute("userId");
+        if (userIdAttr != null) {
+            return (Long) userIdAttr;
         }
-        return Long.parseLong(userIdHeader);
+        throw new RuntimeException("未提供用户身份信息");
     }
 
     @Data

@@ -15,6 +15,7 @@ import SystemSettings from '../views/settings/SystemSettings.vue';
 import OperationLog from '../views/settings/OperationLog.vue';
 import SupplierRating from '../views/supplier/SupplierRating.vue';
 import Forbidden from '../views/Forbidden.vue';
+import { isAuthenticated, getUser } from '../api/auth';
 
 const routes = [
   {
@@ -122,14 +123,12 @@ const router = createRouter({
 });
 
 router.beforeEach((to, from, next) => {
-  const userStr = localStorage.getItem('user');
-
   if (to.name === 'Login') {
     next();
     return;
   }
 
-  if (!userStr) {
+  if (!isAuthenticated()) {
     next({ name: 'Login' });
     return;
   }
@@ -141,15 +140,10 @@ router.beforeEach((to, from, next) => {
 
   const allowedRoles = to.meta?.roles as string[] | undefined;
   if (allowedRoles && allowedRoles.length > 0) {
-    try {
-      const user = JSON.parse(userStr);
-      const userRole = user.role || 'USER';
-      if (!allowedRoles.includes(userRole)) {
-        next({ name: 'Forbidden' });
-        return;
-      }
-    } catch {
-      next({ name: 'Login' });
+    const user = getUser();
+    const userRole = user?.role || 'USER';
+    if (!allowedRoles.includes(userRole)) {
+      next({ name: 'Forbidden' });
       return;
     }
   }

@@ -2,6 +2,7 @@
 import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from '../api/axios';
+import { setTokens } from '../api/auth';
 import { ElMessage } from 'element-plus';
 import { User, Lock, ArrowRight } from '@element-plus/icons-vue';
 
@@ -22,7 +23,8 @@ const handleLogin = async () => {
   try {
     const res: any = await axios.post('/users/login', form);
     if (res.code === 200) {
-      localStorage.setItem('user', JSON.stringify(res.data));
+      const { accessToken, refreshToken, user } = res.data;
+      setTokens(accessToken, refreshToken, user);
       ElMessage.success('登录成功');
       router.push('/');
     }

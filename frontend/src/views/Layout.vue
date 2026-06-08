@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import NotificationPopover from '../components/NotificationPopover.vue';
+import { getUser, clearAuth } from '../api/auth';
 import { 
   Menu as MenuIcon, 
   House, 
@@ -19,7 +20,7 @@ import {
 
 const router = useRouter();
 const route = useRoute();
-const user = JSON.parse(localStorage.getItem('user') || '{}');
+const user = getUser() || {};
 const isAdmin = computed(() => user.role === 'ADMIN');
 
 const activeMenu = computed(() => route.path);
@@ -30,7 +31,7 @@ const breadcrumbs = computed(() => {
 });
 
 const logout = () => {
-  localStorage.removeItem('user');
+  clearAuth();
   router.push('/login');
 };
 </script>

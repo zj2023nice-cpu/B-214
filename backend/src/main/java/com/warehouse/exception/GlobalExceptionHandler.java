@@ -3,6 +3,7 @@ package com.warehouse.exception;
 import com.warehouse.common.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -21,6 +22,13 @@ public class GlobalExceptionHandler {
     public ApiResponse<String> handleForbiddenException(ForbiddenException e) {
         log.warn("Forbidden access: {}", e.getMessage());
         return ApiResponse.error(403, e.getMessage());
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ApiResponse<String> handleAccessDeniedException(AccessDeniedException e) {
+        log.warn("Access denied: {}", e.getMessage());
+        return ApiResponse.error(403, "权限不足");
     }
 
     @ExceptionHandler(Exception.class)
