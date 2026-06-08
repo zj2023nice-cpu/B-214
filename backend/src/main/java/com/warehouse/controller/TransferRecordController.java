@@ -36,6 +36,11 @@ public class TransferRecordController {
         return ApiResponse.success(transferRecordService.cancelTransfer(id));
     }
 
+    @PutMapping("/{id}/confirm")
+    public ApiResponse<TransferRecord> confirmTransfer(@PathVariable Long id) {
+        return ApiResponse.success(transferRecordService.confirmTransfer(id));
+    }
+
     @DeleteMapping("/{id}")
     public ApiResponse<Void> deleteTransfer(@PathVariable Long id) {
         transferRecordService.deleteTransfer(id);

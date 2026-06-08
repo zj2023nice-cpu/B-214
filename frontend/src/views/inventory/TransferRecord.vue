@@ -120,7 +120,7 @@ const handleSubmit = async () => {
 
   const res: any = await axios.post('/transfers', form.value);
   if (res.code === 200) {
-    ElMessage.success('调拨成功');
+    ElMessage.success('调拨申请已创建，状态为待处理');
     form.value = {
       sourceWarehouse: { id: null },
       targetWarehouse: { id: null },
@@ -134,9 +134,27 @@ const handleSubmit = async () => {
   }
 };
 
-const handleCancel = async (id: number) => {
+const handleConfirm = async (id: number) => {
   try {
-    await ElMessageBox.confirm('确认取消该调拨记录？取消后库存将回退至原仓库。', '提示', {
+    await ElMessageBox.confirm('确认执行该调拨？确认后将执行库存变动。', '确认调拨', {
+      confirmButtonText: '确认执行',
+      cancelButtonText: '取消',
+      type: 'warning'
+    });
+    const res: any = await axios.put(`/transfers/${id}/confirm`);
+    if (res.code === 200) {
+      ElMessage.success('调拨已完成，库存已变动');
+      fetchTransfers();
+    }
+  } catch {}
+};
+
+const handleCancel = async (id: number, status: string) => {
+  const msg = status === 'COMPLETED'
+    ? '确认取消该调拨记录？取消后库存将回退至原仓库。'
+    : '确认取消该待处理的调拨记录？';
+  try {
+    await ElMessageBox.confirm(msg, '提示', {
       confirmButtonText: '确认',
       cancelButtonText: '取消',
       type: 'warning'
@@ -149,9 +167,12 @@ const handleCancel = async (id: number) => {
   } catch {}
 };
 
-const handleDelete = async (id: number) => {
+const handleDelete = async (id: number, status: string) => {
+  const msg = status === 'COMPLETED'
+    ? '确认删除该调拨记录？删除后库存将回退至原仓库，此操作不可恢复。'
+    : '确认删除该调拨记录？此操作不可恢复。';
   try {
-    await ElMessageBox.confirm('确认删除该调拨记录？此操作不可恢复。', '警告', {
+    await ElMessageBox.confirm(msg, '警告', {
       confirmButtonText: '确认',
       cancelButtonText: '取消',
       type: 'warning'
@@ -174,6 +195,13 @@ onMounted(() => {
 <template>
   <div class="transfer-container">
     <el-card header="物资调拨">
+      <el-alert
+        title="调拨流程：创建调拨单（待处理） → 确认执行（库存变动） → 完成"
+        type="info"
+        show-icon
+        :closable="false"
+        style="margin-bottom: 16px;"
+      />
       <el-form :model="form" label-width="120px" style="max-width: 600px;">
         <el-form-item label="源仓库">
           <el-select v-model="form.sourceWarehouse.id" filterable placeholder="请选择源仓库" style="width: 100%">
@@ -218,7 +246,7 @@ onMounted(() => {
           <el-input v-model="form.remark" type="textarea" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSubmit">确认调拨</el-button>
+          <el-button type="primary" @click="handleSubmit">提交调拨申请</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -245,18 +273,24 @@ onMounted(() => {
           </template>
         </el-table-column>
         <el-table-column prop="remark" label="备注" />
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column label="操作" width="240" fixed="right">
           <template #default="scope">
+            <el-button
+              v-if="scope.row.status === 'PENDING'"
+              type="success"
+              size="small"
+              @click="handleConfirm(scope.row.id)"
+            >确认执行</el-button>
             <el-button
               v-if="scope.row.status !== 'CANCELLED'"
               type="warning"
               size="small"
-              @click="handleCancel(scope.row.id)"
+              @click="handleCancel(scope.row.id, scope.row.status)"
             >取消</el-button>
             <el-button
               type="danger"
               size="small"
-              @click="handleDelete(scope.row.id)"
+              @click="handleDelete(scope.row.id, scope.row.status)"
             >删除</el-button>
           </template>
         </el-table-column>
