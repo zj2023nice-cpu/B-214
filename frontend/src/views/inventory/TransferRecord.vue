@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import axios from '../../api/axios';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import dayjs from 'dayjs';
@@ -7,6 +7,7 @@ import dayjs from 'dayjs';
 const warehouses = ref([]);
 const materials = ref([]);
 const transfers = ref([]);
+const sourceInventory = ref<any[]>([]);
 
 const form = ref({
   sourceWarehouse: { id: null as number | null },
@@ -30,6 +31,48 @@ const fetchTransfers = async () => {
   const res: any = await axios.get('/transfers');
   if (res.code === 200) transfers.value = res.data;
 };
+
+const fetchSourceInventory = async (warehouseId: number) => {
+  if (!warehouseId) {
+    sourceInventory.value = [];
+    return;
+  }
+  const res: any = await axios.get(`/transfers/warehouse-inventory/${warehouseId}`);
+  if (res.code === 200) {
+    sourceInventory.value = res.data;
+  }
+};
+
+const filteredMaterials = ref<any[]>([]);
+
+const updateFilteredMaterials = () => {
+  if (form.value.sourceWarehouse.id && sourceInventory.value.length > 0) {
+    const invMaterialIds = sourceInventory.value.map((wi: any) => wi.material?.id).filter(Boolean);
+    filteredMaterials.value = materials.value.filter((m: any) => invMaterialIds.includes(m.id));
+  } else {
+    filteredMaterials.value = materials.value;
+  }
+};
+
+const getMaterialStockInSource = (materialId: number | null) => {
+  if (!materialId || !form.value.sourceWarehouse.id) return 0;
+  const inv = sourceInventory.value.find((wi: any) => wi.material?.id === materialId);
+  return inv?.quantity || 0;
+};
+
+watch(() => form.value.sourceWarehouse.id, (newVal) => {
+  form.value.material.id = null;
+  if (newVal) {
+    fetchSourceInventory(newVal);
+  } else {
+    sourceInventory.value = [];
+    updateFilteredMaterials();
+  }
+});
+
+watch(sourceInventory, () => {
+  updateFilteredMaterials();
+});
 
 const formatDate = (date: string) => {
   return dayjs(date).format('YYYY-MM-DD HH:mm:ss');
@@ -85,13 +128,15 @@ const handleSubmit = async () => {
       quantity: 1,
       remark: ''
     };
+    sourceInventory.value = [];
+    filteredMaterials.value = [];
     fetchTransfers();
   }
 };
 
 const handleCancel = async (id: number) => {
   try {
-    await ElMessageBox.confirm('确认取消该调拨记录？', '提示', {
+    await ElMessageBox.confirm('确认取消该调拨记录？取消后库存将回退至原仓库。', '提示', {
       confirmButtonText: '确认',
       cancelButtonText: '取消',
       type: 'warning'
@@ -137,16 +182,37 @@ onMounted(() => {
         </el-form-item>
         <el-form-item label="目标仓库">
           <el-select v-model="form.targetWarehouse.id" filterable placeholder="请选择目标仓库" style="width: 100%">
-            <el-option v-for="w in warehouses" :key="w.id" :label="`${w.code} - ${w.name}`" :value="w.id" />
+            <el-option
+              v-for="w in warehouses"
+              :key="w.id"
+              :label="`${w.code} - ${w.name}`"
+              :value="w.id"
+              :disabled="w.id === form.sourceWarehouse.id"
+            />
           </el-select>
         </el-form-item>
         <el-form-item label="选择物资">
           <el-select v-model="form.material.id" filterable placeholder="请选择物资" style="width: 100%">
-            <el-option v-for="m in materials" :key="m.id" :label="`${m.code} - ${m.name} (库存: ${m.stockQuantity})`" :value="m.id" />
+            <el-option
+              v-for="m in filteredMaterials"
+              :key="m.id"
+              :label="form.sourceWarehouse.id
+                ? `${m.code} - ${m.name} (仓库库存: ${getMaterialStockInSource(m.id)})`
+                : `${m.code} - ${m.name} (总库存: ${m.stockQuantity})`"
+              :value="m.id"
+            />
           </el-select>
         </el-form-item>
         <el-form-item label="调拨数量">
-          <el-input-number v-model="form.quantity" :min="1" style="width: 100%" />
+          <el-input-number
+            v-model="form.quantity"
+            :min="1"
+            :max="getMaterialStockInSource(form.material.id) || 9999"
+            style="width: 100%"
+          />
+          <div v-if="form.sourceWarehouse.id && form.material.id" style="font-size: 12px; color: #999; margin-left: 10px;">
+            源仓库库存: {{ getMaterialStockInSource(form.material.id) }}
+          </div>
         </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="form.remark" type="textarea" />

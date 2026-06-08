@@ -27,7 +27,11 @@ public class OutboundRecord {
     @JoinColumn(name = "material_id", nullable = false)
     private Material material;
 
-    private String department; // 领用部门
+    @ManyToOne
+    @JoinColumn(name = "warehouse_id")
+    private Warehouse warehouse;
+
+    private String department;
     
     private String remark;
 }

@@ -2,6 +2,7 @@ package com.warehouse.controller;
 
 import com.warehouse.common.ApiResponse;
 import com.warehouse.entity.TransferRecord;
+import com.warehouse.entity.WarehouseInventory;
 import com.warehouse.service.TransferRecordService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -39,5 +40,10 @@ public class TransferRecordController {
     public ApiResponse<Void> deleteTransfer(@PathVariable Long id) {
         transferRecordService.deleteTransfer(id);
         return ApiResponse.success(null);
+    }
+
+    @GetMapping("/warehouse-inventory/{warehouseId}")
+    public ApiResponse<List<WarehouseInventory>> getWarehouseInventory(@PathVariable Long warehouseId) {
+        return ApiResponse.success(transferRecordService.getWarehouseInventory(warehouseId));
     }
 }

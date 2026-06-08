@@ -5,12 +5,14 @@ import { ElMessage } from 'element-plus';
 
 const materials = ref([]);
 const suppliers = ref([]);
+const warehouses = ref([]);
 const form = ref({
   serialNo: '',
-  material: { id: null },
+  warehouse: { id: null as number | null },
+  material: { id: null as number | null },
   quantity: 1,
   price: 0,
-  supplier: { id: null },
+  supplier: { id: null as number | null },
   remark: ''
 });
 
@@ -22,6 +24,11 @@ const fetchMaterials = async () => {
 const fetchSuppliers = async () => {
   const res: any = await axios.get('/suppliers');
   if (res.code === 200) suppliers.value = res.data;
+};
+
+const fetchWarehouses = async () => {
+  const res: any = await axios.get('/warehouses');
+  if (res.code === 200) warehouses.value = res.data;
 };
 
 const generateSerialNo = () => {
@@ -43,13 +50,14 @@ const handleSubmit = async () => {
   
   const payload = { ...form.value };
   if (!payload.supplier.id) payload.supplier = null;
+  if (!payload.warehouse.id) payload.warehouse = null;
   
   const res: any = await axios.post('/inventory/inbound', payload);
   if (res.code === 200) {
     ElMessage.success('入库成功');
-    // Reset form
     form.value = {
       serialNo: '',
+      warehouse: { id: null },
       material: { id: null },
       quantity: 1,
       price: 0,
@@ -73,6 +81,7 @@ const handleMaterialChange = (val: number) => {
 onMounted(() => {
   fetchMaterials();
   fetchSuppliers();
+  fetchWarehouses();
   generateSerialNo();
 });
 </script>
@@ -87,6 +96,11 @@ onMounted(() => {
                <el-button @click="generateSerialNo">刷新</el-button>
              </template>
           </el-input>
+        </el-form-item>
+        <el-form-item label="入库仓库">
+          <el-select v-model="form.warehouse.id" filterable placeholder="请选择入库仓库" style="width: 100%">
+            <el-option v-for="w in warehouses" :key="w.id" :label="`${w.code} - ${w.name}`" :value="w.id" />
+          </el-select>
         </el-form-item>
         <el-form-item label="选择物资">
           <el-select v-model="form.material.id" filterable placeholder="请选择物资" style="width: 100%" @change="handleMaterialChange">

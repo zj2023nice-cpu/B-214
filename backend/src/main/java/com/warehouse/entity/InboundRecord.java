@@ -28,8 +28,12 @@ public class InboundRecord {
     private Material material;
 
     @ManyToOne
+    @JoinColumn(name = "warehouse_id")
+    private Warehouse warehouse;
+
+    @ManyToOne
     @JoinColumn(name = "supplier_id")
-    private Supplier supplier; // 冗余存储或关联，这里选择关联
+    private Supplier supplier;
     
     private String remark;
 }

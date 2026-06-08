@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import axios from '../../api/axios';
 import { ElMessage } from 'element-plus';
 
 const materials = ref([]);
+const warehouses = ref([]);
 const form = ref({
   serialNo: '',
-  material: { id: null },
+  warehouse: { id: null as number | null },
+  material: { id: null as number | null },
   quantity: 1,
   department: '',
   remark: ''
@@ -16,6 +18,11 @@ const currentStock = ref(0);
 const fetchMaterials = async () => {
   const res: any = await axios.get('/materials');
   if (res.code === 200) materials.value = res.data;
+};
+
+const fetchWarehouses = async () => {
+  const res: any = await axios.get('/warehouses');
+  if (res.code === 200) warehouses.value = res.data;
 };
 
 const generateSerialNo = () => {
@@ -29,12 +36,45 @@ const generateSerialNo = () => {
   form.value.serialNo = `OUT-${timestamp}`;
 };
 
-const handleMaterialChange = (val: number) => {
-  const material: any = materials.value.find((m: any) => m.id === val);
-  if (material) {
-    currentStock.value = material.stockQuantity || 0;
+const warehouseInventory = ref<any[]>([]);
+
+const fetchWarehouseInventory = async (warehouseId: number) => {
+  if (!warehouseId) {
+    warehouseInventory.value = [];
+    currentStock.value = 0;
+    return;
+  }
+  const res: any = await axios.get(`/transfers/warehouse-inventory/${warehouseId}`);
+  if (res.code === 200) {
+    warehouseInventory.value = res.data;
+    updateCurrentStock();
   }
 };
+
+const updateCurrentStock = () => {
+  if (form.value.warehouse.id && form.value.material.id) {
+    const inv = warehouseInventory.value.find(
+      (wi: any) => wi.material?.id === form.value.material.id
+    );
+    currentStock.value = inv?.quantity || 0;
+  } else {
+    const material: any = materials.value.find((m: any) => m.id === form.value.material.id);
+    currentStock.value = material?.stockQuantity || 0;
+  }
+};
+
+watch(() => form.value.warehouse.id, (newVal) => {
+  if (newVal) {
+    fetchWarehouseInventory(newVal);
+  } else {
+    warehouseInventory.value = [];
+    updateCurrentStock();
+  }
+});
+
+watch(() => form.value.material.id, () => {
+  updateCurrentStock();
+});
 
 const handleSubmit = async () => {
   if (!form.value.material.id) {
@@ -46,12 +86,15 @@ const handleSubmit = async () => {
     return;
   }
   
-  const res: any = await axios.post('/inventory/outbound', form.value);
+  const payload = { ...form.value };
+  if (!payload.warehouse.id) payload.warehouse = null;
+
+  const res: any = await axios.post('/inventory/outbound', payload);
   if (res.code === 200) {
     ElMessage.success('出库成功');
-    // Reset form
     form.value = {
       serialNo: '',
+      warehouse: { id: null },
       material: { id: null },
       quantity: 1,
       department: '',
@@ -59,12 +102,13 @@ const handleSubmit = async () => {
     };
     generateSerialNo();
     currentStock.value = 0;
-    fetchMaterials(); // Refresh stock data
+    fetchMaterials();
   }
 };
 
 onMounted(() => {
   fetchMaterials();
+  fetchWarehouses();
   generateSerialNo();
 });
 </script>
@@ -80,8 +124,13 @@ onMounted(() => {
              </template>
           </el-input>
         </el-form-item>
+        <el-form-item label="出库仓库">
+          <el-select v-model="form.warehouse.id" filterable placeholder="请选择出库仓库" style="width: 100%">
+            <el-option v-for="w in warehouses" :key="w.id" :label="`${w.code} - ${w.name}`" :value="w.id" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="选择物资">
-          <el-select v-model="form.material.id" filterable placeholder="请选择物资" style="width: 100%" @change="handleMaterialChange">
+          <el-select v-model="form.material.id" filterable placeholder="请选择物资" style="width: 100%">
             <el-option v-for="item in materials" :key="item.id" :label="`${item.code} - ${item.name} (库存: ${item.stockQuantity})`" :value="item.id" />
           </el-select>
         </el-form-item>
