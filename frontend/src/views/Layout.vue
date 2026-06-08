@@ -271,3 +271,27 @@ const logout = () => {
   border-radius: 3px;
 }
 </style>
+
+<style>
+@media print {
+  .sidebar-container {
+    display: none !important;
+  }
+  .navbar {
+    display: none !important;
+  }
+  .app-main {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+  .content-container {
+    margin-left: 0 !important;
+  }
+  .el-aside {
+    display: none !important;
+  }
+  .el-header {
+    display: none !important;
+  }
+}
+</style>
