@@ -2,11 +2,15 @@
 import { ref, onMounted } from 'vue';
 import axios from '../../api/axios';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import type { UploadFile } from 'element-plus';
 
 const materials = ref([]);
 const categories = ref([]);
 const suppliers = ref([]);
 const dialogVisible = ref(false);
+const importResultVisible = ref(false);
+const importResult = ref<any>(null);
+const uploading = ref(false);
 const form = ref<any>({
   code: '',
   name: '',
@@ -52,7 +56,6 @@ const handleAdd = () => {
 };
 
 const handleSave = async () => {
-  // Fix empty object issue if select is cleared or not selected properly
   if (!form.value.category.id) form.value.category = null;
   if (!form.value.supplier.id) form.value.supplier = null;
 
@@ -78,6 +81,36 @@ const handleDelete = (id: number) => {
   });
 };
 
+const handleImportUpload = async (options: any) => {
+  const formData = new FormData();
+  formData.append('file', options.file);
+  uploading.value = true;
+  try {
+    const res: any = await axios.post('/materials/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 60000,
+    });
+    if (res.code === 200) {
+      importResult.value = res.data;
+      importResultVisible.value = true;
+      fetchMaterials();
+      if (res.data.failureCount === 0) {
+        ElMessage.success(`导入成功，共导入 ${res.data.successCount} 条记录`);
+      } else {
+        ElMessage.warning(`导入完成，成功 ${res.data.successCount} 条，失败 ${res.data.failureCount} 条`);
+      }
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.data?.message || '导入失败');
+  } finally {
+    uploading.value = false;
+  }
+};
+
+const handleDownloadTemplate = () => {
+  window.open('/api/materials/template', '_blank');
+};
+
 const tableRowClassName = ({ row }: { row: any }) => {
   if (row.stockQuantity < row.alertThreshold) {
     return 'warning-row';
@@ -95,6 +128,15 @@ onMounted(() => {
   <div class="material-container">
     <div class="header-actions">
       <el-button type="primary" @click="handleAdd">新增物资</el-button>
+      <el-upload
+        :show-file-list="false"
+        :http-request="handleImportUpload"
+        accept=".xlsx,.xls,.csv"
+        style="display: inline-block; margin-left: 12px;"
+      >
+        <el-button type="success" :loading="uploading">批量导入</el-button>
+      </el-upload>
+      <el-button @click="handleDownloadTemplate" style="margin-left: 12px;">下载导入模板</el-button>
     </div>
 
     <el-table 
@@ -196,6 +238,31 @@ onMounted(() => {
         </span>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="importResultVisible" title="导入结果" width="650px">
+      <div v-if="importResult" class="import-result">
+        <el-descriptions :column="3" border>
+          <el-descriptions-item label="总计">{{ importResult.totalCount }}</el-descriptions-item>
+          <el-descriptions-item label="成功">
+            <span style="color: #67c23a; font-weight: bold;">{{ importResult.successCount }}</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="失败">
+            <span :style="importResult.failureCount > 0 ? 'color: #f56c6c; font-weight: bold;' : ''">{{ importResult.failureCount }}</span>
+          </el-descriptions-item>
+        </el-descriptions>
+        <div v-if="importResult.failures && importResult.failures.length > 0" style="margin-top: 16px;">
+          <h4 style="margin-bottom: 8px;">失败详情：</h4>
+          <el-table :data="importResult.failures" border max-height="300" style="width: 100%;">
+            <el-table-column prop="rowIndex" label="行号" width="80" />
+            <el-table-column prop="materialCode" label="物资编号" width="120" />
+            <el-table-column prop="reason" label="失败原因" />
+          </el-table>
+        </div>
+      </div>
+      <template #footer>
+        <el-button type="primary" @click="importResultVisible = false">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -204,6 +271,10 @@ onMounted(() => {
   padding: 20px;
   background-color: white;
   border-radius: 8px;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
 }
 .warning-row {
   --el-table-tr-bg-color: var(--el-color-warning-light-9);

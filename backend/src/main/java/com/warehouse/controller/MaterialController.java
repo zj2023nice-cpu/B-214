@@ -1,12 +1,15 @@
 package com.warehouse.controller;
 
 import com.warehouse.common.ApiResponse;
-import com.warehouse.entity.Category;
+import com.warehouse.dto.ImportResult;
 import com.warehouse.entity.Material;
-import com.warehouse.entity.Supplier;
 import com.warehouse.service.MaterialService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -26,15 +29,38 @@ public class MaterialController {
     public ApiResponse<Material> createMaterial(@RequestBody Material material) {
         return ApiResponse.success(materialService.saveMaterial(material));
     }
-    
+
     @DeleteMapping("/{id}")
     public ApiResponse<Void> deleteMaterial(@PathVariable Long id) {
         materialService.deleteMaterial(id);
         return ApiResponse.success(null);
     }
-    
+
     @GetMapping("/low-stock")
     public ApiResponse<List<Material>> getLowStock(@RequestParam(defaultValue = "10") Integer threshold) {
         return ApiResponse.success(materialService.getLowStockMaterials(threshold));
+    }
+
+    @PostMapping("/import")
+    public ApiResponse<ImportResult> importMaterials(@RequestParam("file") MultipartFile file) {
+        try {
+            ImportResult result = materialService.importMaterials(file);
+            return ApiResponse.success(result);
+        } catch (Exception e) {
+            return ApiResponse.error(400, e.getMessage());
+        }
+    }
+
+    @GetMapping("/template")
+    public ResponseEntity<byte[]> downloadTemplate() {
+        try {
+            byte[] template = materialService.generateImportTemplate();
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=material_import_template.xlsx")
+                    .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                    .body(template);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }

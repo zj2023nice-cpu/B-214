@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface MaterialRepository extends JpaRepository<Material, Long> {
     List<Material> findByStockQuantityLessThan(Integer threshold);
+    boolean existsByCode(String code);
 }
