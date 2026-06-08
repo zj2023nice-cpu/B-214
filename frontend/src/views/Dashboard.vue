@@ -12,12 +12,22 @@ interface Warehouse {
   manager: string;
 }
 
+interface TrendItem {
+  date: string;
+  inboundQuantity: number;
+  outboundQuantity: number;
+}
+
 const warehouses = ref<Warehouse[]>([]);
 const materials = ref([]);
 const pieChartRef = ref(null);
 const lineChartRef = ref(null);
 let pieChart: any = null;
 let lineChart: any = null;
+
+const trendLoading = ref(false);
+const trendEmpty = ref(false);
+const trendData = ref<TrendItem[]>([]);
 
 const fetchData = async () => {
   try {
@@ -29,10 +39,31 @@ const fetchData = async () => {
     if (wRes.code === 200) warehouses.value = wRes.data;
     if (mRes.code === 200) {
       materials.value = mRes.data;
-      nextTick(() => initCharts());
+      nextTick(() => initPieChart());
     }
   } catch (error) {
     console.error(error);
+  }
+};
+
+const fetchTrendData = async (days: number = 7) => {
+  trendLoading.value = true;
+  trendEmpty.value = false;
+  try {
+    const res: any = await axios.get('/inventory/statistics/trend', { params: { days } });
+    if (res.code === 200) {
+      trendData.value = res.data;
+      const hasData = trendData.value.some(
+        (item) => item.inboundQuantity > 0 || item.outboundQuantity > 0
+      );
+      trendEmpty.value = !hasData;
+      nextTick(() => initLineChart());
+    }
+  } catch (error) {
+    console.error(error);
+    trendEmpty.value = true;
+  } finally {
+    trendLoading.value = false;
   }
 };
 
@@ -49,10 +80,9 @@ const stats = computed(() => {
   ];
 });
 
-const initCharts = () => {
-  if (!pieChartRef.value || !lineChartRef.value) return;
+const initPieChart = () => {
+  if (!pieChartRef.value) return;
 
-  // Pie Chart: Stock by Category
   const categoryData: Record<string, number> = {};
   materials.value.forEach((item: any) => {
     const catName = item.category?.name || '未分类';
@@ -81,25 +111,46 @@ const initCharts = () => {
       data: pieData
     }]
   });
+};
 
-  // Line Chart: Mock Trend Data (Since we don't have historical data API yet)
+const initLineChart = () => {
+  if (!lineChartRef.value || trendEmpty.value) return;
+
   if (lineChart) lineChart.dispose();
   lineChart = echarts.init(lineChartRef.value);
   lineChart.setOption({
-    title: { text: '近7日出入库趋势 (演示数据)', left: 'center' },
+    title: { text: '近7日出入库趋势', left: 'center' },
     tooltip: { trigger: 'axis' },
-    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-    xAxis: { type: 'category', boundaryGap: false, data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] },
+    legend: { data: ['入库', '出库'], bottom: '0%' },
+    grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
+    xAxis: {
+      type: 'category',
+      boundaryGap: false,
+      data: trendData.value.map(item => item.date)
+    },
     yAxis: { type: 'value' },
     series: [
-      { name: '入库', type: 'line', smooth: true, data: [120, 132, 101, 134, 90, 230, 210], itemStyle: { color: '#67C23A' } },
-      { name: '出库', type: 'line', smooth: true, data: [220, 182, 191, 234, 290, 330, 310], itemStyle: { color: '#F56C6C' } }
+      {
+        name: '入库',
+        type: 'line',
+        smooth: true,
+        data: trendData.value.map(item => item.inboundQuantity),
+        itemStyle: { color: '#67C23A' }
+      },
+      {
+        name: '出库',
+        type: 'line',
+        smooth: true,
+        data: trendData.value.map(item => item.outboundQuantity),
+        itemStyle: { color: '#F56C6C' }
+      }
     ]
   });
 };
 
 onMounted(() => {
   fetchData();
+  fetchTrendData(7);
   window.addEventListener('resize', () => {
     pieChart?.resize();
     lineChart?.resize();
@@ -133,7 +184,12 @@ onMounted(() => {
       </el-col>
       <el-col :span="12">
         <el-card shadow="hover">
-          <div ref="lineChartRef" style="height: 350px;"></div>
+          <div v-loading="trendLoading" style="height: 350px; position: relative;">
+            <div v-if="trendEmpty && !trendLoading" class="empty-trend">
+              <el-empty description="暂无出入库趋势数据" />
+            </div>
+            <div v-show="!trendEmpty" ref="lineChartRef" style="height: 350px;"></div>
+          </div>
         </el-card>
       </el-col>
     </el-row>
@@ -205,6 +261,17 @@ onMounted(() => {
 
 .chart-row {
   margin-bottom: 30px;
+}
+
+.empty-trend {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .section-title {

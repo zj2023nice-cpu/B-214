@@ -1,6 +1,7 @@
 package com.warehouse.controller;
 
 import com.warehouse.common.ApiResponse;
+import com.warehouse.dto.DailyTrendDTO;
 import com.warehouse.entity.InboundRecord;
 import com.warehouse.entity.OutboundRecord;
 import com.warehouse.service.InventoryService;
@@ -34,5 +35,12 @@ public class InventoryController {
     @GetMapping("/records/outbound")
     public ApiResponse<List<OutboundRecord>> getOutboundRecords() {
         return ApiResponse.success(inventoryService.getAllOutboundRecords());
+    }
+
+    @GetMapping("/statistics/trend")
+    public ApiResponse<List<DailyTrendDTO>> getTrend(@RequestParam(defaultValue = "7") int days) {
+        if (days < 1) days = 1;
+        if (days > 30) days = 30;
+        return ApiResponse.success(inventoryService.getDailyTrend(days));
     }
 }
