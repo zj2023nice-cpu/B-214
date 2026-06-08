@@ -99,6 +99,8 @@ const handleImportUpload = async (options: any) => {
       } else {
         ElMessage.warning(`导入完成，成功 ${res.data.successCount} 条，失败 ${res.data.failureCount} 条`);
       }
+    } else {
+      ElMessage.error(res.message || '导入失败');
     }
   } catch (error: any) {
     ElMessage.error(error?.response?.data?.message || '导入失败');
