@@ -1,7 +1,9 @@
 package com.warehouse.service;
 
 import com.warehouse.entity.Category;
+import com.warehouse.exception.DeleteConflictException;
 import com.warehouse.repository.CategoryRepository;
+import com.warehouse.repository.MaterialRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -11,6 +13,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CategoryService {
     private final CategoryRepository categoryRepository;
+    private final MaterialRepository materialRepository;
 
     public List<Category> getAllCategories() {
         return categoryRepository.findAll();
@@ -29,6 +32,14 @@ public class CategoryService {
     }
 
     public void deleteCategory(Long id) {
+        long count = materialRepository.countByCategoryId(id);
+        if (count > 0) {
+            throw new DeleteConflictException("分类", count);
+        }
         categoryRepository.deleteById(id);
+    }
+
+    public long getMaterialCountByCategoryId(Long id) {
+        return materialRepository.countByCategoryId(id);
     }
 }

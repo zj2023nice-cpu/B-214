@@ -1,6 +1,8 @@
 package com.warehouse.service;
 
 import com.warehouse.entity.Supplier;
+import com.warehouse.exception.DeleteConflictException;
+import com.warehouse.repository.MaterialRepository;
 import com.warehouse.repository.SupplierRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -11,6 +13,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SupplierService {
     private final SupplierRepository supplierRepository;
+    private final MaterialRepository materialRepository;
 
     public List<Supplier> getAllSuppliers() {
         return supplierRepository.findAll();
@@ -31,6 +34,14 @@ public class SupplierService {
     }
 
     public void deleteSupplier(Long id) {
+        long count = materialRepository.countBySupplierId(id);
+        if (count > 0) {
+            throw new DeleteConflictException("供应商", count);
+        }
         supplierRepository.deleteById(id);
+    }
+
+    public long getMaterialCountBySupplierId(Long id) {
+        return materialRepository.countBySupplierId(id);
     }
 }

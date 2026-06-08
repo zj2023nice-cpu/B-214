@@ -39,15 +39,32 @@ const handleSaveCat = async () => {
   }
 };
 
-const handleDeleteCat = (id: number) => {
-   ElMessageBox.confirm('确定删除该分类吗?', '提示', { type: 'warning' })
-    .then(async () => {
+const handleDeleteCat = async (id: number) => {
+  try {
+    const checkRes: any = await axios.get(`/categories/${id}/deletion-check`);
+    if (checkRes.code === 200) {
+      const { materialCount, canDelete } = checkRes.data;
+      if (!canDelete) {
+        ElMessageBox.alert(
+          `该分类下存在 ${materialCount} 个物资，无法删除。请先移除或变更关联物资的分类后再试。`,
+          '无法删除',
+          { type: 'warning', confirmButtonText: '知道了' }
+        );
+        return;
+      }
+      await ElMessageBox.confirm('确定删除该分类吗？删除后不可恢复。', '删除确认', { type: 'warning' });
       const res: any = await axios.delete(`/categories/${id}`);
       if (res.code === 200) {
         ElMessage.success('删除成功');
         fetchCategories();
       }
-    });
+    }
+  } catch (e: any) {
+    if (e !== 'cancel' && e?.response?.status === 409) {
+      const data = e.response.data?.data;
+      ElMessage.error(data?.message || '该分类下存在关联物资，无法删除');
+    }
+  }
 };
 
 const handleAddSup = () => {
@@ -64,15 +81,32 @@ const handleSaveSup = async () => {
   }
 };
 
-const handleDeleteSup = (id: number) => {
-   ElMessageBox.confirm('确定删除该供应商吗?', '提示', { type: 'warning' })
-    .then(async () => {
+const handleDeleteSup = async (id: number) => {
+  try {
+    const checkRes: any = await axios.get(`/suppliers/${id}/deletion-check`);
+    if (checkRes.code === 200) {
+      const { materialCount, canDelete } = checkRes.data;
+      if (!canDelete) {
+        ElMessageBox.alert(
+          `该供应商下存在 ${materialCount} 个物资，无法删除。请先移除或变更关联物资的供应商后再试。`,
+          '无法删除',
+          { type: 'warning', confirmButtonText: '知道了' }
+        );
+        return;
+      }
+      await ElMessageBox.confirm('确定删除该供应商吗？删除后不可恢复。', '删除确认', { type: 'warning' });
       const res: any = await axios.delete(`/suppliers/${id}`);
       if (res.code === 200) {
         ElMessage.success('删除成功');
         fetchSuppliers();
       }
-    });
+    }
+  } catch (e: any) {
+    if (e !== 'cancel' && e?.response?.status === 409) {
+      const data = e.response.data?.data;
+      ElMessage.error(data?.message || '该供应商下存在关联物资，无法删除');
+    }
+  }
 };
 
 onMounted(() => {

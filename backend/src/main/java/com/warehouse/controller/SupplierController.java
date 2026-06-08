@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/suppliers")
@@ -32,6 +33,15 @@ public class SupplierController {
     @OperationLog(type = OperationType.UPDATE, description = "修改供应商", target = "供应商")
     public ApiResponse<Supplier> updateSupplier(@PathVariable Long id, @RequestBody Supplier supplier) {
         return ApiResponse.success(supplierService.updateSupplier(id, supplier));
+    }
+
+    @GetMapping("/{id}/deletion-check")
+    public ApiResponse<Map<String, Object>> checkDeletion(@PathVariable Long id) {
+        long count = supplierService.getMaterialCountBySupplierId(id);
+        Map<String, Object> result = new java.util.HashMap<>();
+        result.put("materialCount", count);
+        result.put("canDelete", count == 0);
+        return ApiResponse.success(result);
     }
 
     @DeleteMapping("/{id}")

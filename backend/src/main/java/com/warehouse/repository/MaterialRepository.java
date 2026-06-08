@@ -16,4 +16,8 @@ public interface MaterialRepository extends JpaRepository<Material, Long>, JpaSp
 
     @Query("SELECT m FROM Material m WHERE m.stockQuantity < m.alertThreshold AND m.category.id = :categoryId ORDER BY (m.alertThreshold - m.stockQuantity) DESC")
     List<Material> findAlertMaterialsByCategory(@Param("categoryId") Long categoryId);
+
+    long countByCategoryId(Long categoryId);
+
+    long countBySupplierId(Long supplierId);
 }

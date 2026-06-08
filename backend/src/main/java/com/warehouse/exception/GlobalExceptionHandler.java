@@ -57,6 +57,17 @@ public class GlobalExceptionHandler {
         return ApiResponse.error(400, "Validation Error");
     }
     
+    @ExceptionHandler(DeleteConflictException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ApiResponse<java.util.Map<String, Object>> handleDeleteConflictException(DeleteConflictException e) {
+        log.warn("Delete conflict: {}", e.getMessage());
+        java.util.Map<String, Object> detail = new java.util.HashMap<>();
+        detail.put("entityType", e.getEntityType());
+        detail.put("count", e.getCount());
+        detail.put("message", e.getMessage());
+        return new ApiResponse<>(409, e.getMessage(), detail);
+    }
+
     @ExceptionHandler(RuntimeException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiResponse<String> handleRuntimeException(RuntimeException e) {
