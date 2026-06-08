@@ -7,6 +7,7 @@ import type { UploadProps } from 'element-plus';
 
 const materials = ref([]);
 const categories = ref([]);
+const suppliers = ref([]);
 const dialogVisible = ref(false);
 const importResultVisible = ref(false);
 const importResult = ref<any>(null);

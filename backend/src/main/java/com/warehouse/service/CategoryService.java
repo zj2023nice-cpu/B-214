@@ -42,4 +42,8 @@ public class CategoryService {
     public long getMaterialCountByCategoryId(Long id) {
         return materialRepository.countByCategoryId(id);
     }
+
+    public Category getCategoryById(Long id) {
+        return categoryRepository.findById(id).orElse(null);
+    }
 }

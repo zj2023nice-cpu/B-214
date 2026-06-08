@@ -44,4 +44,8 @@ public class SupplierService {
     public long getMaterialCountBySupplierId(Long id) {
         return materialRepository.countBySupplierId(id);
     }
+
+    public Supplier getSupplierById(Long id) {
+        return supplierRepository.findById(id).orElse(null);
+    }
 }

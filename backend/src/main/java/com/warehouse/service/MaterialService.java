@@ -8,12 +8,10 @@ import com.warehouse.dto.ImportResult;
 import com.warehouse.entity.Category;
 import com.warehouse.entity.Material;
 import com.warehouse.entity.Supplier;
-import com.warehouse.repository.CategoryRepository;
 import com.warehouse.repository.InboundRecordRepository;
 import com.warehouse.repository.InventoryCheckDetailRepository;
 import com.warehouse.repository.MaterialRepository;
 import com.warehouse.repository.OutboundRecordRepository;
-import com.warehouse.repository.SupplierRepository;
 import com.warehouse.repository.TransferRecordRepository;
 import com.warehouse.repository.WarehouseInventoryRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,8 +22,6 @@ import org.apache.commons.csv.CSVRecord;
 import org.apache.poi.ss.usermodel.*;
 
 import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
-import jakarta.persistence.criteria.Subquery;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -47,8 +43,8 @@ import java.util.*;
 @Slf4j
 public class MaterialService {
     private final MaterialRepository materialRepository;
-    private final CategoryRepository categoryRepository;
-    private final SupplierRepository supplierRepository;
+    private final CategoryService categoryService;
+    private final SupplierService supplierService;
     private final InboundRecordRepository inboundRecordRepository;
     private final OutboundRecordRepository outboundRecordRepository;
     private final WarehouseInventoryRepository warehouseInventoryRepository;
@@ -339,7 +335,7 @@ public class MaterialService {
             if (!categoryIdStr.isEmpty()) {
                 try {
                     Long categoryId = Long.parseLong(categoryIdStr);
-                    category = categoryRepository.findById(categoryId).orElse(null);
+                    category = categoryService.getCategoryById(categoryId);
                     if (category == null) {
                         result.getFailures().add(new ImportFailureDetail(rowIndex, code, "分类ID不存在: " + categoryIdStr));
                         continue;
@@ -354,7 +350,7 @@ public class MaterialService {
             if (!supplierIdStr.isEmpty()) {
                 try {
                     Long supplierId = Long.parseLong(supplierIdStr);
-                    supplier = supplierRepository.findById(supplierId).orElse(null);
+                    supplier = supplierService.getSupplierById(supplierId);
                     if (supplier == null) {
                         result.getFailures().add(new ImportFailureDetail(rowIndex, code, "供应商ID不存在: " + supplierIdStr));
                         continue;
@@ -446,29 +442,4 @@ public class MaterialService {
         }
     }
 
-    // Category Operations
-    public List<Category> getAllCategories() {
-        return categoryRepository.findAll();
-    }
-
-    public Category saveCategory(Category category) {
-        return categoryRepository.save(category);
-    }
-
-    public void deleteCategory(Long id) {
-        categoryRepository.deleteById(id);
-    }
-
-    // Supplier Operations
-    public List<Supplier> getAllSuppliers() {
-        return supplierRepository.findAll();
-    }
-
-    public Supplier saveSupplier(Supplier supplier) {
-        return supplierRepository.save(supplier);
-    }
-
-    public void deleteSupplier(Long id) {
-        supplierRepository.deleteById(id);
-    }
 }
