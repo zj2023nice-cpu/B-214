@@ -39,32 +39,64 @@ const handleSaveCat = async () => {
   }
 };
 
-const handleDeleteCat = async (id: number) => {
+const handleDeleteWithCheck = async ({
+  entityLabel,
+  relationLabel,
+  checkUrl,
+  deleteUrl,
+  onSuccess
+}: {
+  entityLabel: string;
+  relationLabel: string;
+  checkUrl: string;
+  deleteUrl: string;
+  onSuccess: () => void;
+}) => {
   try {
-    const checkRes: any = await axios.get(`/categories/${id}/deletion-check`);
-    if (checkRes.code === 200) {
-      const { materialCount, canDelete } = checkRes.data;
-      if (!canDelete) {
-        ElMessageBox.alert(
-          `该分类下存在 ${materialCount} 个物资，无法删除。请先移除或变更关联物资的分类后再试。`,
-          '无法删除',
-          { type: 'warning', confirmButtonText: '知道了' }
-        );
-        return;
+    const checkRes: any = await axios.get(checkUrl);
+    if (checkRes.code !== 200) return;
+
+    const { materialCount, canDelete } = checkRes.data;
+    if (!canDelete) {
+      await ElMessageBox.alert(
+        `该${entityLabel}下存在 ${materialCount} 个物资，无法删除。请先移除或变更关联物资的${relationLabel}后再试。`,
+        '无法删除',
+        { type: 'warning', confirmButtonText: '知道了' }
+      );
+      return;
+    }
+
+    await ElMessageBox.confirm(
+      `该${entityLabel}下当前无关联物资（${materialCount} 个），确定删除吗？删除后不可恢复。`,
+      '删除确认',
+      {
+        type: 'warning',
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消'
       }
-      await ElMessageBox.confirm('确定删除该分类吗？删除后不可恢复。', '删除确认', { type: 'warning' });
-      const res: any = await axios.delete(`/categories/${id}`);
-      if (res.code === 200) {
-        ElMessage.success('删除成功');
-        fetchCategories();
-      }
+    );
+
+    const res: any = await axios.delete(deleteUrl);
+    if (res.code === 200) {
+      ElMessage.success('删除成功');
+      onSuccess();
     }
   } catch (e: any) {
-    if (e !== 'cancel' && e?.response?.status === 409) {
-      const data = e.response.data?.data;
-      ElMessage.error(data?.message || '该分类下存在关联物资，无法删除');
+    if (e === 'cancel' || e === 'close') {
+      return;
     }
+    throw e;
   }
+};
+
+const handleDeleteCat = async (id: number) => {
+  await handleDeleteWithCheck({
+    entityLabel: '分类',
+    relationLabel: '分类',
+    checkUrl: `/categories/${id}/deletion-check`,
+    deleteUrl: `/categories/${id}`,
+    onSuccess: fetchCategories
+  });
 };
 
 const handleAddSup = () => {
@@ -82,31 +114,13 @@ const handleSaveSup = async () => {
 };
 
 const handleDeleteSup = async (id: number) => {
-  try {
-    const checkRes: any = await axios.get(`/suppliers/${id}/deletion-check`);
-    if (checkRes.code === 200) {
-      const { materialCount, canDelete } = checkRes.data;
-      if (!canDelete) {
-        ElMessageBox.alert(
-          `该供应商下存在 ${materialCount} 个物资，无法删除。请先移除或变更关联物资的供应商后再试。`,
-          '无法删除',
-          { type: 'warning', confirmButtonText: '知道了' }
-        );
-        return;
-      }
-      await ElMessageBox.confirm('确定删除该供应商吗？删除后不可恢复。', '删除确认', { type: 'warning' });
-      const res: any = await axios.delete(`/suppliers/${id}`);
-      if (res.code === 200) {
-        ElMessage.success('删除成功');
-        fetchSuppliers();
-      }
-    }
-  } catch (e: any) {
-    if (e !== 'cancel' && e?.response?.status === 409) {
-      const data = e.response.data?.data;
-      ElMessage.error(data?.message || '该供应商下存在关联物资，无法删除');
-    }
-  }
+  await handleDeleteWithCheck({
+    entityLabel: '供应商',
+    relationLabel: '供应商',
+    checkUrl: `/suppliers/${id}/deletion-check`,
+    deleteUrl: `/suppliers/${id}`,
+    onSuccess: fetchSuppliers
+  });
 };
 
 onMounted(() => {
