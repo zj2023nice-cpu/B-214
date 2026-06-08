@@ -8,6 +8,7 @@ import Inbound from '../views/inventory/Inbound.vue';
 import Outbound from '../views/inventory/Outbound.vue';
 import InventoryRecords from '../views/inventory/InventoryRecords.vue';
 import InventoryCheck from '../views/inventory/InventoryCheck.vue';
+import TransferRecord from '../views/inventory/TransferRecord.vue';
 import StockReport from '../views/report/StockReport.vue';
 import SystemSettings from '../views/settings/SystemSettings.vue';
 import SupplierRating from '../views/supplier/SupplierRating.vue';
@@ -72,6 +73,12 @@ const routes = [
         name: 'InventoryCheck',
         component: InventoryCheck,
         meta: { title: '库存盘点', roles: ['ADMIN'] }
+      },
+      {
+        path: 'inventory/transfer',
+        name: 'TransferRecord',
+        component: TransferRecord,
+        meta: { title: '物资调拨', roles: ['ADMIN', 'USER'] }
       },
       {
         path: 'reports/stock',
