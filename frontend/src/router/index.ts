@@ -10,6 +10,7 @@ import InventoryRecords from '../views/inventory/InventoryRecords.vue';
 import InventoryCheck from '../views/inventory/InventoryCheck.vue';
 import StockReport from '../views/report/StockReport.vue';
 import SystemSettings from '../views/settings/SystemSettings.vue';
+import Forbidden from '../views/Forbidden.vue';
 
 const routes = [
   {
@@ -17,6 +18,12 @@ const routes = [
     name: 'Login',
     component: Login,
     meta: { title: '登录' }
+  },
+  {
+    path: '/403',
+    name: 'Forbidden',
+    component: Forbidden,
+    meta: { title: '访问被拒绝' }
   },
   {
     path: '/',
@@ -27,55 +34,55 @@ const routes = [
         path: 'dashboard',
         name: 'Dashboard',
         component: Dashboard,
-        meta: { title: '仪表盘' }
+        meta: { title: '仪表盘', roles: ['ADMIN', 'USER'] }
       },
       {
         path: 'warehouses',
         name: 'WarehouseList',
         component: WarehouseList,
-        meta: { title: '仓库管理' }
+        meta: { title: '仓库管理', roles: ['ADMIN'] }
       },
       {
         path: 'materials',
         name: 'MaterialList',
         component: MaterialList,
-        meta: { title: '物资管理' }
+        meta: { title: '物资管理', roles: ['ADMIN', 'USER'] }
       },
       {
         path: 'inventory/inbound',
         name: 'Inbound',
         component: Inbound,
-        meta: { title: '物资入库' }
+        meta: { title: '物资入库', roles: ['ADMIN', 'USER'] }
       },
       {
         path: 'inventory/outbound',
         name: 'Outbound',
         component: Outbound,
-        meta: { title: '物资出库' }
+        meta: { title: '物资出库', roles: ['ADMIN', 'USER'] }
       },
       {
         path: 'inventory/records',
         name: 'InventoryRecords',
         component: InventoryRecords,
-        meta: { title: '出入库记录' }
+        meta: { title: '出入库记录', roles: ['ADMIN', 'USER'] }
       },
       {
         path: 'inventory/check',
         name: 'InventoryCheck',
         component: InventoryCheck,
-        meta: { title: '库存盘点' }
+        meta: { title: '库存盘点', roles: ['ADMIN'] }
       },
       {
         path: 'reports/stock',
         name: 'StockReport',
         component: StockReport,
-        meta: { title: '库存报表' }
+        meta: { title: '库存报表', roles: ['ADMIN'] }
       },
       {
         path: 'settings',
         name: 'SystemSettings',
         component: SystemSettings,
-        meta: { title: '系统设置' }
+        meta: { title: '系统设置', roles: ['ADMIN'] }
       }
     ]
   }
@@ -87,12 +94,39 @@ const router = createRouter({
 });
 
 router.beforeEach((to, from, next) => {
-  const user = localStorage.getItem('user');
-  if (to.name !== 'Login' && !user) {
-    next({ name: 'Login' });
-  } else {
+  const userStr = localStorage.getItem('user');
+
+  if (to.name === 'Login') {
     next();
+    return;
   }
+
+  if (!userStr) {
+    next({ name: 'Login' });
+    return;
+  }
+
+  if (to.name === 'Forbidden') {
+    next();
+    return;
+  }
+
+  const allowedRoles = to.meta?.roles as string[] | undefined;
+  if (allowedRoles && allowedRoles.length > 0) {
+    try {
+      const user = JSON.parse(userStr);
+      const userRole = user.role || 'USER';
+      if (!allowedRoles.includes(userRole)) {
+        next({ name: 'Forbidden' });
+        return;
+      }
+    } catch {
+      next({ name: 'Login' });
+      return;
+    }
+  }
+
+  next();
 });
 
 export default router;

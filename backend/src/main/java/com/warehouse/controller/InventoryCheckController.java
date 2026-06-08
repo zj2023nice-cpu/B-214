@@ -1,5 +1,6 @@
 package com.warehouse.controller;
 
+import com.warehouse.annotation.RequireRole;
 import com.warehouse.common.ApiResponse;
 import com.warehouse.entity.InventoryCheck;
 import com.warehouse.entity.InventoryCheckDetail;
@@ -18,6 +19,7 @@ public class InventoryCheckController {
     private final InventoryCheckService inventoryCheckService;
 
     @PostMapping
+    @RequireRole("ADMIN")
     public ApiResponse<InventoryCheck> createCheck(@RequestBody Map<String, String> body) {
         String remark = body.getOrDefault("remark", "");
         return ApiResponse.success(inventoryCheckService.createCheck(remark));

@@ -1,5 +1,6 @@
 package com.warehouse.controller;
 
+import com.warehouse.annotation.RequireRole;
 import com.warehouse.common.ApiResponse;
 import com.warehouse.dto.ImportResult;
 import com.warehouse.entity.Material;
@@ -31,6 +32,7 @@ public class MaterialController {
     }
 
     @DeleteMapping("/{id}")
+    @RequireRole("ADMIN")
     public ApiResponse<Void> deleteMaterial(@PathVariable Long id) {
         materialService.deleteMaterial(id);
         return ApiResponse.success(null);

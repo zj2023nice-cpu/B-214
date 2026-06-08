@@ -17,6 +17,7 @@ import {
 const router = useRouter();
 const route = useRoute();
 const user = JSON.parse(localStorage.getItem('user') || '{}');
+const isAdmin = computed(() => user.role === 'ADMIN');
 
 const activeMenu = computed(() => route.path);
 
@@ -55,7 +56,7 @@ const logout = () => {
               <span>仪表盘</span>
             </el-menu-item>
             
-            <el-sub-menu index="/warehouses">
+            <el-sub-menu v-if="isAdmin" index="/warehouses">
               <template #title>
                 <el-icon><House /></el-icon>
                 <span>仓库管理</span>
@@ -79,10 +80,10 @@ const logout = () => {
               <el-menu-item index="/inventory/inbound">物资入库</el-menu-item>
               <el-menu-item index="/inventory/outbound">物资出库</el-menu-item>
               <el-menu-item index="/inventory/records">出入库记录</el-menu-item>
-              <el-menu-item index="/inventory/check">库存盘点</el-menu-item>
+              <el-menu-item v-if="isAdmin" index="/inventory/check">库存盘点</el-menu-item>
             </el-sub-menu>
 
-            <el-sub-menu index="/reports">
+            <el-sub-menu v-if="isAdmin" index="/reports">
               <template #title>
                 <el-icon><DataLine /></el-icon>
                 <span>报表统计</span>
@@ -90,7 +91,7 @@ const logout = () => {
               <el-menu-item index="/reports/stock">库存报表</el-menu-item>
             </el-sub-menu>
 
-            <el-sub-menu index="/settings">
+            <el-sub-menu v-if="isAdmin" index="/settings">
               <template #title>
                 <el-icon><Setting /></el-icon>
                 <span>系统设置</span>

@@ -1,5 +1,6 @@
 package com.warehouse.controller;
 
+import com.warehouse.annotation.RequireRole;
 import com.warehouse.common.ApiResponse;
 import com.warehouse.entity.Shelf;
 import com.warehouse.entity.Warehouse;
@@ -27,6 +28,7 @@ public class WarehouseController {
     }
     
     @DeleteMapping("/{id}")
+    @RequireRole("ADMIN")
     public ApiResponse<Void> delete(@PathVariable Long id) {
         warehouseService.deleteWarehouse(id);
         return ApiResponse.success(null);
