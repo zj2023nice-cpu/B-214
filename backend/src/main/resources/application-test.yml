@@ -1,6 +1,9 @@
+server:
+  port: 0
+
 spring:
   datasource:
-    url: jdbc:h2:mem:warehouse_db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    url: jdbc:h2:mem:warehouse_db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL
     username: sa
     password:
     driver-class-name: org.h2.Driver
@@ -12,6 +15,14 @@ spring:
   h2:
     console:
       enabled: false
+
+jwt:
+  secret: WarehouseOsJwtSecretKey2024VeryLongSecretForHmacSha256Algorithm
+  access-token-expiration: 1800000
+  refresh-token-expiration: 604800000
+
+file:
+  upload-dir: ${java.io.tmpdir}/warehouse-test-uploads
 
 logging:
   level:
