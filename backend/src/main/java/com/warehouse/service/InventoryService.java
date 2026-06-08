@@ -59,8 +59,14 @@ public class InventoryService {
         }
 
         if (record.getShelf() != null && record.getShelf().getId() != null) {
+            if (record.getWarehouse() == null || record.getWarehouse().getId() == null) {
+                throw new RuntimeException("未选择仓库时不能指定货架");
+            }
             Shelf shelf = shelfRepository.findById(record.getShelf().getId())
                     .orElseThrow(() -> new RuntimeException("Shelf not found"));
+            if (!shelf.getWarehouse().getId().equals(record.getWarehouse().getId())) {
+                throw new RuntimeException("所选货架不属于当前仓库");
+            }
             int newLoad = shelf.getCurrentLoad() + record.getQuantity();
             if (shelf.getCapacity() != null && newLoad > shelf.getCapacity()) {
                 throw new RuntimeException("货架超载！当前承载量：" + shelf.getCurrentLoad()
@@ -111,8 +117,14 @@ public class InventoryService {
         }
 
         if (record.getShelf() != null && record.getShelf().getId() != null) {
+            if (record.getWarehouse() == null || record.getWarehouse().getId() == null) {
+                throw new RuntimeException("未选择仓库时不能指定货架");
+            }
             Shelf shelf = shelfRepository.findById(record.getShelf().getId())
                     .orElseThrow(() -> new RuntimeException("Shelf not found"));
+            if (!shelf.getWarehouse().getId().equals(record.getWarehouse().getId())) {
+                throw new RuntimeException("所选货架不属于当前仓库");
+            }
             int newLoad = shelf.getCurrentLoad() - record.getQuantity();
             if (newLoad < 0) {
                 throw new RuntimeException("货架承载量不足！当前承载量：" + shelf.getCurrentLoad()

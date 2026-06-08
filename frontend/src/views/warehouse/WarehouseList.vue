@@ -128,6 +128,12 @@ const isOverloaded = (shelf: any) => {
   return getLoadRate(shelf) > 90;
 };
 
+const getWarningText = (shelf: any) => {
+  const rate = getLoadRate(shelf);
+  if (rate > 90) return '容量预警';
+  return '';
+};
+
 onMounted(() => {
   fetchWarehouses();
 });
@@ -208,9 +214,9 @@ onMounted(() => {
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="预警" width="80" align="center">
+        <el-table-column label="预警" width="100" align="center">
           <template #default="scope">
-            <el-tag v-if="isOverloaded(scope.row)" type="danger" size="small">超载</el-tag>
+            <el-tag v-if="isOverloaded(scope.row)" type="warning" size="small">{{ getWarningText(scope.row) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="100">
