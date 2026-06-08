@@ -66,4 +66,8 @@ public interface OutboundRecordRepository extends JpaRepository<OutboundRecord, 
     List<OutboundRecord> findByStatusInOrderByOutboundTimeDesc(Collection<OutboundStatus> statuses);
 
     List<OutboundRecord> findByStatusOrderByOutboundTimeDesc(OutboundStatus status);
+
+    @Query("SELECT COALESCE(SUM(obr.quantity), 0) FROM OutboundRecord obr " +
+           "WHERE obr.outboundTime >= :start AND obr.outboundTime < :end AND obr.status IN :statuses")
+    Long sumTodayOutboundQuantity(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end, @Param("statuses") Collection<OutboundStatus> statuses);
 }

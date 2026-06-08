@@ -1,6 +1,7 @@
 package com.warehouse.service;
 
 import com.warehouse.dto.DailyTrendDTO;
+import com.warehouse.dto.DashboardStatsDTO;
 import com.warehouse.dto.TurnoverRateDTO;
 import com.warehouse.entity.InboundRecord;
 import com.warehouse.entity.Material;
@@ -380,6 +381,47 @@ public class InventoryService {
                         e.getValue()[0],
                         e.getValue()[1]))
                 .toList();
+    }
+
+    public DashboardStatsDTO getDashboardStats() {
+        LocalDate today = LocalDate.now();
+        LocalDateTime todayStart = today.atStartOfDay();
+        LocalDateTime todayEnd = today.plusDays(1).atStartOfDay();
+
+        Long todayInboundTotal = inboundRecordRepository.sumTodayInboundQuantity(todayStart, todayEnd);
+        Long todayOutboundTotal = outboundRecordRepository.sumTodayOutboundQuantity(todayStart, todayEnd, EFFECTIVE_OUTBOUND_STATUSES);
+
+        LocalDateTime monthStart = today.withDayOfMonth(1).atStartOfDay();
+        LocalDateTime monthEnd = today.plusMonths(1).withDayOfMonth(1).atStartOfDay();
+
+        Map<Long, Long> monthInboundMap = new HashMap<>();
+        for (Object[] row : inboundRecordRepository.findMonthlyInboundByMaterial(monthStart, monthEnd)) {
+            Long materialId = ((Number) row[0]).longValue();
+            Long total = ((Number) row[1]).longValue();
+            monthInboundMap.put(materialId, total);
+        }
+
+        Map<Long, Long> monthOutboundMap = new HashMap<>();
+        for (Object[] row : outboundRecordRepository.findMonthlyOutboundByMaterialAndStatuses(monthStart, monthEnd, EFFECTIVE_OUTBOUND_STATUSES)) {
+            Long materialId = ((Number) row[0]).longValue();
+            Long total = ((Number) row[1]).longValue();
+            monthOutboundMap.put(materialId, total);
+        }
+
+        double monthlyStockValueChange = 0.0;
+        List<Material> allMaterials = materialRepository.findAll();
+        for (Material m : allMaterials) {
+            double price = m.getPrice() != null ? m.getPrice() : 0.0;
+            long inboundQty = monthInboundMap.getOrDefault(m.getId(), 0L);
+            long outboundQty = monthOutboundMap.getOrDefault(m.getId(), 0L);
+            monthlyStockValueChange += (inboundQty - outboundQty) * price;
+        }
+
+        return new DashboardStatsDTO(
+                todayInboundTotal != null ? todayInboundTotal : 0L,
+                todayOutboundTotal != null ? todayOutboundTotal : 0L,
+                Math.round(monthlyStockValueChange * 100.0) / 100.0
+        );
     }
 
     public List<TurnoverRateDTO> getTurnoverRates(String month) {

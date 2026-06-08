@@ -4,6 +4,7 @@ import com.warehouse.annotation.OperationLog;
 import com.warehouse.annotation.RequireRole;
 import com.warehouse.common.ApiResponse;
 import com.warehouse.dto.DailyTrendDTO;
+import com.warehouse.dto.DashboardStatsDTO;
 import com.warehouse.dto.TurnoverRateDTO;
 import com.warehouse.entity.InboundRecord;
 import com.warehouse.entity.OperationType;
@@ -145,6 +146,11 @@ public class InventoryController {
         if (days < 1) days = 1;
         if (days > 30) days = 30;
         return ApiResponse.success(inventoryService.getDailyTrend(days));
+    }
+
+    @GetMapping("/statistics/dashboard")
+    public ApiResponse<DashboardStatsDTO> getDashboardStats() {
+        return ApiResponse.success(inventoryService.getDashboardStats());
     }
 
     @GetMapping("/turnover-rate")
