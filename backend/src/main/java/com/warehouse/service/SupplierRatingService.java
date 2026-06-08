@@ -13,9 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -94,8 +92,9 @@ public class SupplierRatingService {
 
     @Transactional(readOnly = true)
     public Double getAverageRating(Long supplierId) {
-        Double avg = ratingRepository.findAverageRatingBySupplierId(supplierId);
-        return avg != null ? Math.round(avg * 10.0) / 10.0 : 0.0;
+        Supplier supplier = supplierRepository.findById(supplierId)
+                .orElseThrow(() -> new RuntimeException("供应商不存在"));
+        return roundRating(supplier.getAverageRating());
     }
 
     @Transactional(readOnly = true)
@@ -113,34 +112,47 @@ public class SupplierRatingService {
     @Transactional(readOnly = true)
     public List<SupplierWithRatingDTO> getAllSuppliersWithRating() {
         List<Supplier> suppliers = supplierRepository.findAll();
+        List<Long> supplierIds = suppliers.stream().map(Supplier::getId).collect(Collectors.toList());
 
-        List<Object[]> avgResults = ratingRepository.findAverageRatingGroupedBySupplier();
-        Map<Long, Double> avgMap = new HashMap<>();
-        for (Object[] row : avgResults) {
-            Long supplierId = (Long) row[0];
-            Double avg = (Double) row[1];
-            avgMap.put(supplierId, Math.round(avg * 10.0) / 10.0);
-        }
+        Map<Long, Long> countMap = batchCountBySupplier(supplierIds);
+        Map<Long, List<SupplierRating>> ratingsMap = batchLatestRatingsBySupplier(supplierIds);
 
         return suppliers.stream().map(supplier -> {
-            Double avgRating = supplierRepository.findAverageRatingBySupplierId(supplier.getId());
-            supplier.setAverageRating(avgRating != null ? Math.round(avgRating * 10.0) / 10.0 : 0.0);
-
             SupplierWithRatingDTO dto = new SupplierWithRatingDTO();
             dto.setId(supplier.getId());
             dto.setName(supplier.getName());
             dto.setContactPerson(supplier.getContactPerson());
             dto.setPhone(supplier.getPhone());
             dto.setAddress(supplier.getAddress());
-            dto.setAverageRating(supplier.getAverageRating());
-            dto.setRatingCount(ratingRepository.countBySupplierId(supplier.getId()));
+            dto.setAverageRating(roundRating(supplier.getAverageRating()));
+            dto.setRatingCount(countMap.getOrDefault(supplier.getId(), 0L));
             dto.setLatestRatings(
-                    ratingRepository.findTop3BySupplierIdOrderByRatingTimeDesc(supplier.getId()).stream()
+                    ratingsMap.getOrDefault(supplier.getId(), Collections.emptyList()).stream()
+                            .limit(3)
                             .map(this::toDTO)
                             .collect(Collectors.toList())
             );
             return dto;
         }).collect(Collectors.toList());
+    }
+
+    private Map<Long, Long> batchCountBySupplier(List<Long> supplierIds) {
+        if (supplierIds.isEmpty()) return Collections.emptyMap();
+        Map<Long, Long> result = new HashMap<>();
+        for (Object[] row : ratingRepository.countBySupplierIdIn(supplierIds)) {
+            result.put((Long) row[0], (Long) row[1]);
+        }
+        return result;
+    }
+
+    private Map<Long, List<SupplierRating>> batchLatestRatingsBySupplier(List<Long> supplierIds) {
+        if (supplierIds.isEmpty()) return Collections.emptyMap();
+        return ratingRepository.findBySupplierIdInOrderByRatingTimeDesc(supplierIds).stream()
+                .collect(Collectors.groupingBy(r -> r.getSupplier().getId()));
+    }
+
+    private Double roundRating(Double value) {
+        return value != null ? Math.round(value * 10.0) / 10.0 : 0.0;
     }
 
     private SupplierRatingDTO toDTO(SupplierRating entity) {

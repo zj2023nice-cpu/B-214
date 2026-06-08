@@ -2,6 +2,7 @@ package com.warehouse.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.Formula;
 
 @Data
 @Entity
@@ -18,14 +19,6 @@ public class Supplier {
     private String phone;
     private String address;
 
-    @Transient
+    @Formula("(SELECT COALESCE(AVG(sr.rating), 0) FROM supplier_ratings sr WHERE sr.supplier_id = id)")
     private Double averageRating;
-
-    public Double getAverageRating() {
-        return averageRating;
-    }
-
-    public void setAverageRating(Double averageRating) {
-        this.averageRating = averageRating;
-    }
 }

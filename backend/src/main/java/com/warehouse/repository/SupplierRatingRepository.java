@@ -11,18 +11,12 @@ public interface SupplierRatingRepository extends JpaRepository<SupplierRating, 
 
     List<SupplierRating> findBySupplierIdOrderByRatingTimeDesc(Long supplierId);
 
-    @Query("SELECT AVG(sr.rating) FROM SupplierRating sr WHERE sr.supplier.id = :supplierId")
-    Double findAverageRatingBySupplierId(@Param("supplierId") Long supplierId);
-
-    @Query("SELECT COUNT(sr) FROM SupplierRating sr WHERE sr.supplier.id = :supplierId")
-    Long countBySupplierId(@Param("supplierId") Long supplierId);
-
     boolean existsByUserIdAndSupplierId(Long userId, Long supplierId);
 
     List<SupplierRating> findTop3BySupplierIdOrderByRatingTimeDesc(Long supplierId);
 
-    void deleteByUserIdAndSupplierId(Long userId, Long supplierId);
+    @Query("SELECT sr.supplier.id, COUNT(sr) FROM SupplierRating sr WHERE sr.supplier.id IN :supplierIds GROUP BY sr.supplier.id")
+    List<Object[]> countBySupplierIdIn(@Param("supplierIds") List<Long> supplierIds);
 
-    @Query("SELECT sr.supplier.id, AVG(sr.rating) FROM SupplierRating sr GROUP BY sr.supplier.id")
-    List<Object[]> findAverageRatingGroupedBySupplier();
+    List<SupplierRating> findBySupplierIdInOrderByRatingTimeDesc(List<Long> supplierIds);
 }
