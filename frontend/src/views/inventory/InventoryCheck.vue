@@ -46,7 +46,7 @@ const openDetail = async (row: any) => {
     currentCheck.value = res.data;
     detailRows.value = res.data.details.map((d: any) => ({
       ...d,
-      actualQuantity: d.actualQuantity ?? d.systemQuantity
+      _submitted: d.actualQuantity !== null && d.actualQuantity !== undefined
     }));
     detailDialogVisible.value = true;
   }
@@ -181,6 +181,7 @@ onMounted(() => {
               v-if="currentCheck?.status !== 'COMPLETED'"
               v-model="scope.row.actualQuantity"
               :min="0"
+              :placeholder="'请录入'"
               size="small"
               controls-position="right"
             />
