@@ -33,7 +33,7 @@ const fetchData = async () => {
   try {
     const [wRes, mRes]: any = await Promise.all([
       axios.get('/warehouses'),
-      axios.get('/materials')
+      axios.get('/materials/all')
     ]);
     
     if (wRes.code === 200) warehouses.value = wRes.data;

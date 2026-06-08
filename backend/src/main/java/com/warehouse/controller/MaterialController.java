@@ -34,6 +34,11 @@ public class MaterialController {
         return ApiResponse.success(materialService.searchMaterials(keyword, categoryId, stockStatus, page, size));
     }
 
+    @GetMapping("/all")
+    public ApiResponse<List<Material>> listAllMaterials() {
+        return ApiResponse.success(materialService.getAllMaterials());
+    }
+
     @PostMapping
     @OperationLog(type = OperationType.CREATE, description = "新增物资", target = "物资")
     public ApiResponse<Material> createMaterial(@RequestBody Material material) {

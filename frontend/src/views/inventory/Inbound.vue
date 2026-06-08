@@ -17,7 +17,7 @@ const form = ref({
 });
 
 const fetchMaterials = async () => {
-  const res: any = await axios.get('/materials');
+  const res: any = await axios.get('/materials/all');
   if (res.code === 200) materials.value = res.data;
 };
 
