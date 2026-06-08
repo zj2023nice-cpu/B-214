@@ -2,7 +2,9 @@
 import { ref, onMounted } from 'vue';
 import axios from '../../api/axios';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { useRouter } from 'vue-router';
 
+const router = useRouter();
 const activeTab = ref('category');
 const categories = ref([]);
 const suppliers = ref([]);
@@ -19,7 +21,7 @@ const fetchCategories = async () => {
 };
 
 const fetchSuppliers = async () => {
-  const res: any = await axios.get('/suppliers');
+  const res: any = await axios.get('/supplier-ratings/suppliers');
   if (res.code === 200) suppliers.value = res.data;
 };
 
@@ -98,12 +100,31 @@ onMounted(() => {
       
       <el-tab-pane label="供应商管理" name="supplier">
         <el-button type="primary" @click="handleAddSup" style="margin-bottom: 20px;">新增供应商</el-button>
+        <el-button @click="router.push('/supplier-rating')" style="margin-bottom: 20px;">供应商评价</el-button>
         <el-table :data="suppliers" border>
           <el-table-column prop="id" label="ID" width="60" />
-          <el-table-column prop="name" label="供应商名称" />
-          <el-table-column prop="contactPerson" label="联系人" />
-          <el-table-column prop="phone" label="电话" />
-          <el-table-column prop="address" label="地址" />
+          <el-table-column prop="name" label="供应商名称" width="160" />
+          <el-table-column prop="contactPerson" label="联系人" width="90" />
+          <el-table-column prop="phone" label="电话" width="130" />
+          <el-table-column label="平均评分" width="180">
+            <template #default="scope">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <el-rate :model-value="scope.row.averageRating" disabled show-score text-color="#ff9900" score-template="{value}" />
+                <span style="color: #909399; font-size: 12px;">({{ scope.row.ratingCount }}条)</span>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="最新评价摘要" min-width="200">
+            <template #default="scope">
+              <div v-if="scope.row.latestRatings && scope.row.latestRatings.length > 0">
+                <div v-for="(r, idx) in scope.row.latestRatings" :key="idx" class="rating-summary-item">
+                  <el-rate :model-value="r.rating" disabled :size="12" style="display: inline-flex;" />
+                  <span class="rating-summary-text">{{ r.content ? (r.content.length > 15 ? r.content.substring(0, 15) + '...' : r.content) : '无内容' }}</span>
+                </div>
+              </div>
+              <span v-else style="color: #c0c4cc;">暂无评价</span>
+            </template>
+          </el-table-column>
           <el-table-column label="操作" width="100">
             <template #default="scope">
               <el-button size="small" type="danger" @click="handleDeleteSup(scope.row.id)">删除</el-button>
@@ -158,5 +179,21 @@ onMounted(() => {
   padding: 20px;
   background-color: white;
   border-radius: 8px;
+}
+
+.rating-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 2px;
+}
+
+.rating-summary-text {
+  font-size: 12px;
+  color: #606266;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 120px;
 }
 </style>

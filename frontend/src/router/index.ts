@@ -10,6 +10,7 @@ import InventoryRecords from '../views/inventory/InventoryRecords.vue';
 import InventoryCheck from '../views/inventory/InventoryCheck.vue';
 import StockReport from '../views/report/StockReport.vue';
 import SystemSettings from '../views/settings/SystemSettings.vue';
+import SupplierRating from '../views/supplier/SupplierRating.vue';
 import Forbidden from '../views/Forbidden.vue';
 
 const routes = [
@@ -83,6 +84,12 @@ const routes = [
         name: 'SystemSettings',
         component: SystemSettings,
         meta: { title: '系统设置', roles: ['ADMIN'] }
+      },
+      {
+        path: 'supplier-rating',
+        name: 'SupplierRating',
+        component: SupplierRating,
+        meta: { title: '供应商评价', roles: ['ADMIN', 'USER'] }
       }
     ]
   }

@@ -11,7 +11,8 @@ import {
   Expand, 
   Fold, 
   UserFilled,
-  ArrowDown
+  ArrowDown,
+  StarFilled
 } from '@element-plus/icons-vue';
 
 const router = useRouter();
@@ -98,6 +99,11 @@ const logout = () => {
               </template>
               <el-menu-item index="/settings">基础数据</el-menu-item>
             </el-sub-menu>
+
+            <el-menu-item index="/supplier-rating">
+              <el-icon><StarFilled /></el-icon>
+              <span>供应商评价</span>
+            </el-menu-item>
           </el-menu>
         </el-scrollbar>
       </el-aside>
