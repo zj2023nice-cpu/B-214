@@ -1,5 +1,4 @@
 services:
-  # Database Service
   db:
     image: mysql:8.0
     container_name: warehouse_db
@@ -8,44 +7,66 @@ services:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: warehouse_db
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
-    ports:
-      - "3307:3306"
     volumes:
       - db_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 20s
       retries: 10
+    networks:
+      - warehouse-net
 
-  # Backend Service (Spring Boot)
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: warehouse_backend
     restart: always
-    ports:
-      - "8081:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/warehouse_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/warehouse_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&useUnicode=true&characterEncoding=utf-8
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: root
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    volumes:
+      - backend_logs:/app/logs
+      - upload_data:/app/uploads
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - warehouse-net
 
-  # Frontend Service (Vue + Nginx)
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: warehouse_frontend
     restart: always
-    ports:
-      - "3001:80"
     depends_on:
       - backend
+    networks:
+      - warehouse-net
+
+  nginx:
+    image: nginx:stable-alpine
+    container_name: warehouse_nginx
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - warehouse-net
 
 volumes:
   db_data:
+  backend_logs:
+  upload_data:
+
+networks:
+  warehouse-net:
+    driver: bridge
