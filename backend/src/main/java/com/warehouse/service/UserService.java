@@ -1,6 +1,7 @@
 package com.warehouse.service;
 
 import com.warehouse.entity.User;
+import com.warehouse.exception.UnauthorizedException;
 import com.warehouse.repository.UserRepository;
 import com.warehouse.security.JwtUtil;
 import com.warehouse.security.LoginResponse;
@@ -29,14 +30,14 @@ public class UserService {
 
     public LoginResponse refreshToken(String refreshToken) {
         if (!jwtUtil.validateRefreshToken(refreshToken)) {
-            throw new RuntimeException("Invalid or expired refresh token");
+            throw new UnauthorizedException("刷新令牌无效或已过期");
         }
 
         Long userId = jwtUtil.getUserId(refreshToken);
         String username = jwtUtil.getUsername(refreshToken);
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UnauthorizedException("用户不存在"));
 
         String newAccessToken = jwtUtil.generateAccessToken(user.getId(), user.getUsername(), user.getRole());
         String newRefreshToken = jwtUtil.generateRefreshToken(user.getId(), user.getUsername());

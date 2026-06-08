@@ -2,6 +2,7 @@ package com.warehouse.controller;
 
 import com.warehouse.common.ApiResponse;
 import com.warehouse.entity.Notification;
+import com.warehouse.exception.UnauthorizedException;
 import com.warehouse.service.NotificationService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +48,6 @@ public class NotificationController {
         if (userIdAttr != null) {
             return (Long) userIdAttr;
         }
-        throw new RuntimeException("未提供用户身份信息");
+        throw new UnauthorizedException("未提供用户身份信息");
     }
 }

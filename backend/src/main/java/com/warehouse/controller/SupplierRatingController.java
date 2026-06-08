@@ -6,6 +6,7 @@ import com.warehouse.common.ApiResponse;
 import com.warehouse.dto.SupplierRatingDTO;
 import com.warehouse.dto.SupplierWithRatingDTO;
 import com.warehouse.entity.OperationType;
+import com.warehouse.exception.UnauthorizedException;
 import com.warehouse.service.SupplierRatingService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.Data;
@@ -87,7 +88,7 @@ public class SupplierRatingController {
         if (userIdAttr != null) {
             return (Long) userIdAttr;
         }
-        throw new RuntimeException("未提供用户身份信息");
+        throw new UnauthorizedException("未提供用户身份信息");
     }
 
     @Data

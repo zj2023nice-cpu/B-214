@@ -2,6 +2,7 @@ package com.warehouse.aspect;
 
 import com.warehouse.annotation.RequireRole;
 import com.warehouse.exception.ForbiddenException;
+import com.warehouse.exception.UnauthorizedException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -31,7 +32,7 @@ public class RoleAspect {
         String userRole = getCurrentUserRole();
 
         if (userRole == null) {
-            throw new ForbiddenException("未提供用户身份信息");
+            throw new UnauthorizedException("未提供用户身份信息");
         }
 
         boolean hasRole = Arrays.asList(requiredRoles).contains(userRole);
