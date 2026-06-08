@@ -1,8 +1,10 @@
 package com.warehouse.controller;
 
+import com.warehouse.annotation.OperationLog;
 import com.warehouse.common.ApiResponse;
 import com.warehouse.dto.DailyTrendDTO;
 import com.warehouse.entity.InboundRecord;
+import com.warehouse.entity.OperationType;
 import com.warehouse.entity.OutboundRecord;
 import com.warehouse.service.InventoryService;
 import lombok.RequiredArgsConstructor;
@@ -18,11 +20,13 @@ public class InventoryController {
     private final InventoryService inventoryService;
 
     @PostMapping("/inbound")
+    @OperationLog(type = OperationType.INBOUND, description = "物资入库", target = "库存")
     public ApiResponse<InboundRecord> inbound(@RequestBody InboundRecord record) {
         return ApiResponse.success(inventoryService.processInbound(record));
     }
 
     @PostMapping("/outbound")
+    @OperationLog(type = OperationType.OUTBOUND, description = "物资出库", target = "库存")
     public ApiResponse<OutboundRecord> outbound(@RequestBody OutboundRecord record) {
         return ApiResponse.success(inventoryService.processOutbound(record));
     }

@@ -11,6 +11,7 @@ import InventoryCheck from '../views/inventory/InventoryCheck.vue';
 import TransferRecord from '../views/inventory/TransferRecord.vue';
 import StockReport from '../views/report/StockReport.vue';
 import SystemSettings from '../views/settings/SystemSettings.vue';
+import OperationLog from '../views/settings/OperationLog.vue';
 import SupplierRating from '../views/supplier/SupplierRating.vue';
 import Forbidden from '../views/Forbidden.vue';
 
@@ -91,6 +92,12 @@ const routes = [
         name: 'SystemSettings',
         component: SystemSettings,
         meta: { title: '系统设置', roles: ['ADMIN'] }
+      },
+      {
+        path: 'settings/operation-log',
+        name: 'OperationLog',
+        component: OperationLog,
+        meta: { title: '操作日志', roles: ['ADMIN'] }
       },
       {
         path: 'supplier-rating',

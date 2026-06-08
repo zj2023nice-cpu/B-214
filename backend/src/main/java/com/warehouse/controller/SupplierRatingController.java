@@ -1,9 +1,11 @@
 package com.warehouse.controller;
 
+import com.warehouse.annotation.OperationLog;
 import com.warehouse.annotation.RequireRole;
 import com.warehouse.common.ApiResponse;
 import com.warehouse.dto.SupplierRatingDTO;
 import com.warehouse.dto.SupplierWithRatingDTO;
+import com.warehouse.entity.OperationType;
 import com.warehouse.service.SupplierRatingService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.Data;
@@ -27,6 +29,7 @@ public class SupplierRatingController {
 
     @PostMapping
     @RequireRole({"ADMIN", "USER"})
+    @OperationLog(type = OperationType.CREATE, description = "新增供应商评价", target = "供应商评价")
     public ApiResponse<SupplierRatingDTO> createRating(
             @RequestBody CreateRatingRequest request,
             HttpServletRequest httpRequest) {
@@ -38,6 +41,7 @@ public class SupplierRatingController {
 
     @PutMapping("/{id}")
     @RequireRole({"ADMIN", "USER"})
+    @OperationLog(type = OperationType.UPDATE, description = "更新供应商评价", target = "供应商评价")
     public ApiResponse<SupplierRatingDTO> updateRating(
             @PathVariable Long id,
             @RequestBody UpdateRatingRequest request,
@@ -50,6 +54,7 @@ public class SupplierRatingController {
 
     @DeleteMapping("/{id}")
     @RequireRole({"ADMIN", "USER"})
+    @OperationLog(type = OperationType.DELETE, description = "删除供应商评价", target = "供应商评价")
     public ApiResponse<Void> deleteRating(
             @PathVariable Long id,
             HttpServletRequest httpRequest) {

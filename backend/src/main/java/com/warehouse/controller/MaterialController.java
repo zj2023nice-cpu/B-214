@@ -1,9 +1,11 @@
 package com.warehouse.controller;
 
+import com.warehouse.annotation.OperationLog;
 import com.warehouse.annotation.RequireRole;
 import com.warehouse.common.ApiResponse;
 import com.warehouse.dto.ImportResult;
 import com.warehouse.entity.Material;
+import com.warehouse.entity.OperationType;
 import com.warehouse.service.MaterialService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -27,12 +29,14 @@ public class MaterialController {
     }
 
     @PostMapping
+    @OperationLog(type = OperationType.CREATE, description = "新增物资", target = "物资")
     public ApiResponse<Material> createMaterial(@RequestBody Material material) {
         return ApiResponse.success(materialService.saveMaterial(material));
     }
 
     @DeleteMapping("/{id}")
     @RequireRole("ADMIN")
+    @OperationLog(type = OperationType.DELETE, description = "删除物资", target = "物资")
     public ApiResponse<Void> deleteMaterial(@PathVariable Long id) {
         materialService.deleteMaterial(id);
         return ApiResponse.success(null);
@@ -44,6 +48,7 @@ public class MaterialController {
     }
 
     @PostMapping("/import")
+    @OperationLog(type = OperationType.IMPORT, description = "导入物资", target = "物资")
     public ApiResponse<ImportResult> importMaterials(@RequestParam("file") MultipartFile file) {
         try {
             ImportResult result = materialService.importMaterials(file);

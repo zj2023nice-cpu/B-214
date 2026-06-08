@@ -1,7 +1,9 @@
 package com.warehouse.controller;
 
+import com.warehouse.annotation.OperationLog;
 import com.warehouse.annotation.RequireRole;
 import com.warehouse.common.ApiResponse;
+import com.warehouse.entity.OperationType;
 import com.warehouse.entity.Shelf;
 import com.warehouse.entity.Warehouse;
 import com.warehouse.service.WarehouseService;
@@ -23,12 +25,14 @@ public class WarehouseController {
     }
 
     @PostMapping
+    @OperationLog(type = OperationType.CREATE, description = "新增仓库", target = "仓库")
     public ApiResponse<Warehouse> create(@RequestBody Warehouse warehouse) {
         return ApiResponse.success(warehouseService.saveWarehouse(warehouse));
     }
     
     @DeleteMapping("/{id}")
     @RequireRole("ADMIN")
+    @OperationLog(type = OperationType.DELETE, description = "删除仓库", target = "仓库")
     public ApiResponse<Void> delete(@PathVariable Long id) {
         warehouseService.deleteWarehouse(id);
         return ApiResponse.success(null);
@@ -41,11 +45,13 @@ public class WarehouseController {
     }
     
     @PostMapping("/shelves")
+    @OperationLog(type = OperationType.CREATE, description = "新增货架", target = "货架")
     public ApiResponse<Shelf> createShelf(@RequestBody Shelf shelf) {
         return ApiResponse.success(warehouseService.saveShelf(shelf));
     }
     
     @DeleteMapping("/shelves/{id}")
+    @OperationLog(type = OperationType.DELETE, description = "删除货架", target = "货架")
     public ApiResponse<Void> deleteShelf(@PathVariable Long id) {
         warehouseService.deleteShelf(id);
         return ApiResponse.success(null);

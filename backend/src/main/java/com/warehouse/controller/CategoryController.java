@@ -1,7 +1,9 @@
 package com.warehouse.controller;
 
+import com.warehouse.annotation.OperationLog;
 import com.warehouse.common.ApiResponse;
 import com.warehouse.entity.Category;
+import com.warehouse.entity.OperationType;
 import com.warehouse.service.CategoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -21,11 +23,13 @@ public class CategoryController {
     }
 
     @PostMapping
+    @OperationLog(type = OperationType.CREATE, description = "新增分类", target = "分类")
     public ApiResponse<Category> createCategory(@RequestBody Category category) {
         return ApiResponse.success(categoryService.createCategory(category));
     }
 
     @DeleteMapping("/{id}")
+    @OperationLog(type = OperationType.DELETE, description = "删除分类", target = "分类")
     public ApiResponse<Void> deleteCategory(@PathVariable Long id) {
         categoryService.deleteCategory(id);
         return ApiResponse.success(null);

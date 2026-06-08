@@ -12,7 +12,8 @@ import {
   Fold, 
   UserFilled,
   ArrowDown,
-  StarFilled
+  StarFilled,
+  Document
 } from '@element-plus/icons-vue';
 
 const router = useRouter();
@@ -99,6 +100,7 @@ const logout = () => {
                 <span>系统设置</span>
               </template>
               <el-menu-item index="/settings">基础数据</el-menu-item>
+              <el-menu-item index="/settings/operation-log">操作日志</el-menu-item>
             </el-sub-menu>
 
             <el-menu-item index="/supplier-rating">
