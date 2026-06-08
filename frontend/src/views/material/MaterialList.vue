@@ -18,6 +18,8 @@ const previewUrl = ref('');
 const materialTableRef = ref();
 const selectedMaterials = ref<any[]>([]);
 const batchDeleting = ref(false);
+const deleteResultVisible = ref(false);
+const deleteResult = ref<any>(null);
 
 const keyword = ref('');
 const filterCategoryId = ref<number | null>(null);
@@ -174,6 +176,16 @@ const handleSelectionChange = (selection: any[]) => {
   selectedMaterials.value = selection;
 };
 
+const showBatchDeleteResult = (result: any) => {
+  deleteResult.value = result;
+  deleteResultVisible.value = true;
+  if (result.allSucceeded) {
+    ElMessage.success(result.summaryMessage || `删除成功，共删除 ${result.successCount} 条记录`);
+  } else {
+    ElMessage.warning(result.summaryMessage || '批量删除未执行，请查看详情');
+  }
+};
+
 const handleBatchDelete = () => {
   if (selectedMaterials.value.length === 0) {
     ElMessage.warning('请先选择要删除的记录');
@@ -190,14 +202,12 @@ const handleBatchDelete = () => {
       const res: any = await axios.delete('/materials/batch', { data: ids });
       if (res.code === 200) {
         const result = res.data;
-        if (result.failureCount === 0) {
-          ElMessage.success(`删除成功，共删除 ${result.successCount} 条记录`);
-        } else {
-          ElMessage.warning(`操作完成，成功 ${result.successCount} 条，失败 ${result.failureCount} 条`);
+        showBatchDeleteResult(result);
+        if (result.allSucceeded) {
+          selectedMaterials.value = [];
+          materialTableRef.value?.clearSelection();
+          fetchMaterials();
         }
-        selectedMaterials.value = [];
-        materialTableRef.value?.clearSelection();
-        fetchMaterials();
       }
     } catch {
       ElMessage.error('批量删除失败');
@@ -501,6 +511,43 @@ onMounted(() => {
 
     <el-dialog v-model="previewVisible" title="图片预览" width="700px">
       <img :src="previewUrl" alt="预览" style="width: 100%;" />
+    </el-dialog>
+
+    <el-dialog v-model="deleteResultVisible" title="批量删除结果" width="720px">
+      <div v-if="deleteResult" class="import-result">
+        <el-descriptions :column="4" border>
+          <el-descriptions-item label="总计">{{ deleteResult.totalCount }}</el-descriptions-item>
+          <el-descriptions-item :label="deleteResult.allSucceeded ? '成功' : '校验通过'">
+            <span style="color: #67c23a; font-weight: bold;">{{ deleteResult.successCount }}</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="失败">
+            <span :style="deleteResult.failureCount > 0 ? 'color: #f56c6c; font-weight: bold;' : ''">{{ deleteResult.failureCount }}</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="执行结果">
+            <span :style="deleteResult.allSucceeded ? 'color: #67c23a; font-weight: bold;' : 'color: #e6a23c; font-weight: bold;'">
+              {{ deleteResult.allSucceeded ? '已删除' : '整批未执行' }}
+            </span>
+          </el-descriptions-item>
+        </el-descriptions>
+        <div style="margin-top: 12px; color: #606266;">{{ deleteResult.summaryMessage }}</div>
+        <div v-if="deleteResult.items && deleteResult.items.length > 0" style="margin-top: 16px;">
+          <h4 style="margin-bottom: 8px;">逐条结果：</h4>
+          <el-table :data="deleteResult.items" border max-height="300" style="width: 100%;">
+            <el-table-column prop="id" label="物资ID" width="100" />
+            <el-table-column label="结果" width="110">
+              <template #default="scope">
+                <el-tag :type="scope.row.success ? 'success' : 'danger'">
+                  {{ scope.row.success ? '通过' : '失败' }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="reason" label="原因" min-width="320" />
+          </el-table>
+        </div>
+      </div>
+      <template #footer>
+        <el-button type="primary" @click="deleteResultVisible = false">确定</el-button>
+      </template>
     </el-dialog>
 
     <el-dialog v-model="importResultVisible" title="导入结果" width="650px">

@@ -14,5 +14,9 @@ public class BatchDeleteResult {
     private int totalCount;
     private int successCount;
     private int failureCount;
+    private boolean allSucceeded;
+    private boolean rolledBack;
+    private String summaryMessage;
+    private List<BatchDeleteItemResult> items = new ArrayList<>();
     private List<BatchDeleteFailureDetail> failures = new ArrayList<>();
 }

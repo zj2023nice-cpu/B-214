@@ -70,4 +70,8 @@ public interface OutboundRecordRepository extends JpaRepository<OutboundRecord, 
     @Query("SELECT COALESCE(SUM(obr.quantity), 0) FROM OutboundRecord obr " +
            "WHERE obr.outboundTime >= :start AND obr.outboundTime < :end AND obr.status IN :statuses")
     Long sumTodayOutboundQuantity(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end, @Param("statuses") Collection<OutboundStatus> statuses);
+
+    boolean existsByMaterialId(Long materialId);
+
+    boolean existsByWarehouseId(Long warehouseId);
 }

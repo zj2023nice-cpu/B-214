@@ -41,4 +41,8 @@ public interface InboundRecordRepository extends JpaRepository<InboundRecord, Lo
     @Query("SELECT COALESCE(SUM(ir.quantity), 0) FROM InboundRecord ir " +
            "WHERE ir.inboundTime >= :start AND ir.inboundTime < :end")
     Long sumTodayInboundQuantity(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    boolean existsByMaterialId(Long materialId);
+
+    boolean existsByWarehouseId(Long warehouseId);
 }

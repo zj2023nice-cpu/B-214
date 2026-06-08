@@ -14,6 +14,8 @@ const outboundTableRef = ref();
 const selectedInbound = ref<any[]>([]);
 const selectedOutbound = ref<any[]>([]);
 const batchDeleting = ref(false);
+const deleteResultVisible = ref(false);
+const deleteResult = ref<any>(null);
 
 const fetchInbound = async () => {
   const params: any = {};
@@ -88,6 +90,16 @@ const handleOutboundSelectionChange = (selection: any[]) => {
   selectedOutbound.value = selection;
 };
 
+const showBatchDeleteResult = (result: any) => {
+  deleteResult.value = result;
+  deleteResultVisible.value = true;
+  if (result.allSucceeded) {
+    ElMessage.success(result.summaryMessage || `删除成功，共删除 ${result.successCount} 条记录`);
+  } else {
+    ElMessage.warning(result.summaryMessage || '批量删除未执行，请查看详情');
+  }
+};
+
 const handleBatchDeleteInbound = () => {
   if (selectedInbound.value.length === 0) {
     ElMessage.warning('请先选择要删除的记录');
@@ -104,14 +116,12 @@ const handleBatchDeleteInbound = () => {
       const res: any = await axios.delete('/inventory/records/inbound/batch', { data: ids });
       if (res.code === 200) {
         const result = res.data;
-        if (result.failureCount === 0) {
-          ElMessage.success(`删除成功，共删除 ${result.successCount} 条记录`);
-        } else {
-          ElMessage.warning(`操作完成，成功 ${result.successCount} 条，失败 ${result.failureCount} 条`);
+        showBatchDeleteResult(result);
+        if (result.allSucceeded) {
+          selectedInbound.value = [];
+          inboundTableRef.value?.clearSelection();
+          fetchInbound();
         }
-        selectedInbound.value = [];
-        inboundTableRef.value?.clearSelection();
-        fetchInbound();
       }
     } catch {
       ElMessage.error('批量删除失败');
@@ -137,14 +147,12 @@ const handleBatchDeleteOutbound = () => {
       const res: any = await axios.delete('/inventory/records/outbound/batch', { data: ids });
       if (res.code === 200) {
         const result = res.data;
-        if (result.failureCount === 0) {
-          ElMessage.success(`删除成功，共删除 ${result.successCount} 条记录`);
-        } else {
-          ElMessage.warning(`操作完成，成功 ${result.successCount} 条，失败 ${result.failureCount} 条`);
+        showBatchDeleteResult(result);
+        if (result.allSucceeded) {
+          selectedOutbound.value = [];
+          outboundTableRef.value?.clearSelection();
+          fetchOutbound();
         }
-        selectedOutbound.value = [];
-        outboundTableRef.value?.clearSelection();
-        fetchOutbound();
       }
     } catch {
       ElMessage.error('批量删除失败');
@@ -263,6 +271,40 @@ onMounted(() => {
         </el-table>
       </el-tab-pane>
     </el-tabs>
+
+    <el-dialog v-model="deleteResultVisible" title="批量删除结果" width="720px">
+      <div v-if="deleteResult">
+        <el-descriptions :column="4" border>
+          <el-descriptions-item label="总计">{{ deleteResult.totalCount }}</el-descriptions-item>
+          <el-descriptions-item :label="deleteResult.allSucceeded ? '成功' : '校验通过'">
+            <span style="color: #67c23a; font-weight: bold;">{{ deleteResult.successCount }}</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="失败">
+            <span :style="deleteResult.failureCount > 0 ? 'color: #f56c6c; font-weight: bold;' : ''">{{ deleteResult.failureCount }}</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="执行结果">
+            <span :style="deleteResult.allSucceeded ? 'color: #67c23a; font-weight: bold;' : 'color: #e6a23c; font-weight: bold;'">
+              {{ deleteResult.allSucceeded ? '已删除' : '整批未执行' }}
+            </span>
+          </el-descriptions-item>
+        </el-descriptions>
+        <div style="margin-top: 12px; color: #606266;">{{ deleteResult.summaryMessage }}</div>
+        <el-table :data="deleteResult.items || []" border max-height="320" style="width: 100%; margin-top: 16px;">
+          <el-table-column prop="id" label="记录ID" width="100" />
+          <el-table-column label="结果" width="110">
+            <template #default="scope">
+              <el-tag :type="scope.row.success ? 'success' : 'danger'">
+                {{ scope.row.success ? '通过' : '失败' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="reason" label="原因" min-width="320" />
+        </el-table>
+      </div>
+      <template #footer>
+        <el-button type="primary" @click="deleteResultVisible = false">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 

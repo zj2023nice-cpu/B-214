@@ -1,6 +1,7 @@
 package com.warehouse.service;
 
 import com.warehouse.dto.BatchDeleteFailureDetail;
+import com.warehouse.dto.BatchDeleteItemResult;
 import com.warehouse.dto.BatchDeleteResult;
 import com.warehouse.dto.ImportFailureDetail;
 import com.warehouse.dto.ImportResult;
@@ -8,8 +9,13 @@ import com.warehouse.entity.Category;
 import com.warehouse.entity.Material;
 import com.warehouse.entity.Supplier;
 import com.warehouse.repository.CategoryRepository;
+import com.warehouse.repository.InboundRecordRepository;
+import com.warehouse.repository.InventoryCheckDetailRepository;
 import com.warehouse.repository.MaterialRepository;
+import com.warehouse.repository.OutboundRecordRepository;
 import com.warehouse.repository.SupplierRepository;
+import com.warehouse.repository.TransferRecordRepository;
+import com.warehouse.repository.WarehouseInventoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVFormat;
@@ -43,6 +49,11 @@ public class MaterialService {
     private final MaterialRepository materialRepository;
     private final CategoryRepository categoryRepository;
     private final SupplierRepository supplierRepository;
+    private final InboundRecordRepository inboundRecordRepository;
+    private final OutboundRecordRepository outboundRecordRepository;
+    private final WarehouseInventoryRepository warehouseInventoryRepository;
+    private final TransferRecordRepository transferRecordRepository;
+    private final InventoryCheckDetailRepository inventoryCheckDetailRepository;
 
     private static final int BATCH_SIZE = 500;
 
@@ -113,23 +124,81 @@ public class MaterialService {
     public BatchDeleteResult batchDeleteMaterials(List<Long> ids) {
         BatchDeleteResult result = new BatchDeleteResult();
         result.setTotalCount(ids.size());
-        List<Long> validIds = new ArrayList<>();
+
+        List<Long> deletableIds = new ArrayList<>();
+        boolean hasFailure = false;
+
         for (Long id : ids) {
-            if (!materialRepository.existsById(id)) {
-                result.getFailures().add(new BatchDeleteFailureDetail(id, "物资不存在"));
+            String failureReason = validateMaterialDeletion(id);
+            if (failureReason != null) {
+                hasFailure = true;
+                result.getItems().add(new BatchDeleteItemResult(id, false, failureReason));
+                result.getFailures().add(new BatchDeleteFailureDetail(id, failureReason));
             } else {
-                validIds.add(id);
+                deletableIds.add(id);
+                result.getItems().add(new BatchDeleteItemResult(id, true, "校验通过，允许删除"));
             }
         }
-        if (!result.getFailures().isEmpty()) {
-            result.setSuccessCount(0);
-            result.setFailureCount(result.getFailures().size());
+
+        result.setSuccessCount(deletableIds.size());
+        result.setFailureCount(result.getFailures().size());
+
+        if (hasFailure) {
+            markRollbackForSuccessfulItems(result, "校验通过，但因本次存在失败项，整批未执行删除");
+            result.setAllSucceeded(false);
+            result.setRolledBack(true);
+            result.setSummaryMessage(String.format("批量删除校验未通过：成功校验 %d 条，失败 %d 条，整批未执行删除", result.getSuccessCount(), result.getFailureCount()));
             return result;
         }
-        materialRepository.deleteAllById(ids);
-        result.setSuccessCount(ids.size());
-        result.setFailureCount(0);
+
+        materialRepository.deleteAllById(deletableIds);
+        markSuccessForItems(result, "删除成功");
+        result.setAllSucceeded(true);
+        result.setRolledBack(false);
+        result.setSummaryMessage(String.format("删除成功，共删除 %d 条记录", result.getSuccessCount()));
         return result;
+    }
+
+    private String validateMaterialDeletion(Long id) {
+        Material material = materialRepository.findById(id).orElse(null);
+        if (material == null) {
+            return "物资不存在";
+        }
+        if (material.getStockQuantity() != null && material.getStockQuantity() > 0) {
+            return "物资当前库存不为 0，不能删除";
+        }
+        if (warehouseInventoryRepository.existsByMaterialId(id)) {
+            return "物资存在仓库库存记录，不能删除";
+        }
+        if (inboundRecordRepository.existsByMaterialId(id)) {
+            return "物资已被入库记录引用，不能删除";
+        }
+        if (outboundRecordRepository.existsByMaterialId(id)) {
+            return "物资已被出库记录引用，不能删除";
+        }
+        if (transferRecordRepository.existsByMaterialId(id)) {
+            return "物资已被调拨记录引用，不能删除";
+        }
+        if (inventoryCheckDetailRepository.existsByMaterialId(id)) {
+            return "物资已被盘点明细引用，不能删除";
+        }
+        return null;
+    }
+
+    private void markRollbackForSuccessfulItems(BatchDeleteResult result, String reason) {
+        for (BatchDeleteItemResult item : result.getItems()) {
+            if (item.isSuccess()) {
+                item.setReason(reason);
+            }
+        }
+    }
+
+    private void markSuccessForItems(BatchDeleteResult result, String reason) {
+        for (BatchDeleteItemResult item : result.getItems()) {
+            if (item.isSuccess()) {
+                item.setReason(reason);
+            }
+        }
     }
 
     public List<Material> getLowStockMaterials(Integer threshold) {

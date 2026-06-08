@@ -1,6 +1,7 @@
 package com.warehouse.service;
 
 import com.warehouse.dto.BatchDeleteFailureDetail;
+import com.warehouse.dto.BatchDeleteItemResult;
 import com.warehouse.dto.BatchDeleteResult;
 import com.warehouse.dto.DailyTrendDTO;
 import com.warehouse.dto.DashboardStatsDTO;
@@ -216,19 +217,18 @@ public class InventoryService {
     public BatchDeleteResult batchDeleteInboundRecords(List<Long> ids) {
         BatchDeleteResult result = new BatchDeleteResult();
         result.setTotalCount(ids.size());
+
         for (Long id : ids) {
-            if (!inboundRecordRepository.existsById(id)) {
-                result.getFailures().add(new BatchDeleteFailureDetail(id, "入库记录不存在"));
-            }
+            String failureReason = validateInboundRecordDeletion(id);
+            result.getItems().add(new BatchDeleteItemResult(id, false, failureReason));
+            result.getFailures().add(new BatchDeleteFailureDetail(id, failureReason));
         }
-        if (!result.getFailures().isEmpty()) {
-            result.setSuccessCount(0);
-            result.setFailureCount(result.getFailures().size());
-            return result;
-        }
-        inboundRecordRepository.deleteAllById(ids);
-        result.setSuccessCount(ids.size());
-        result.setFailureCount(0);
+
+        result.setSuccessCount(0);
+        result.setFailureCount(result.getFailures().size());
+        result.setAllSucceeded(false);
+        result.setRolledBack(true);
+        result.setSummaryMessage(String.format("入库记录不支持批量删除：共 %d 条记录未执行删除", result.getFailureCount()));
         return result;
     }
 
@@ -236,20 +236,76 @@ public class InventoryService {
     public BatchDeleteResult batchDeleteOutboundRecords(List<Long> ids) {
         BatchDeleteResult result = new BatchDeleteResult();
         result.setTotalCount(ids.size());
+
+        List<Long> deletableIds = new ArrayList<>();
+        boolean hasFailure = false;
+
         for (Long id : ids) {
-            if (!outboundRecordRepository.existsById(id)) {
-                result.getFailures().add(new BatchDeleteFailureDetail(id, "出库记录不存在"));
+            String failureReason = validateOutboundRecordDeletion(id);
+            if (failureReason != null) {
+                hasFailure = true;
+                result.getItems().add(new BatchDeleteItemResult(id, false, failureReason));
+                result.getFailures().add(new BatchDeleteFailureDetail(id, failureReason));
+            } else {
+                deletableIds.add(id);
+                result.getItems().add(new BatchDeleteItemResult(id, true, "校验通过，允许删除"));
             }
         }
-        if (!result.getFailures().isEmpty()) {
-            result.setSuccessCount(0);
-            result.setFailureCount(result.getFailures().size());
+
+        result.setSuccessCount(deletableIds.size());
+        result.setFailureCount(result.getFailures().size());
+
+        if (hasFailure) {
+            markRollbackForSuccessfulItems(result, "校验通过，但因本次存在失败项，整批未执行删除");
+            result.setAllSucceeded(false);
+            result.setRolledBack(true);
+            result.setSummaryMessage(String.format("批量删除校验未通过：成功校验 %d 条，失败 %d 条，整批未执行删除", result.getSuccessCount(), result.getFailureCount()));
             return result;
         }
-        outboundRecordRepository.deleteAllById(ids);
-        result.setSuccessCount(ids.size());
-        result.setFailureCount(0);
+
+        outboundRecordRepository.deleteAllById(deletableIds);
+        markSuccessForItems(result, "删除成功");
+        result.setAllSucceeded(true);
+        result.setRolledBack(false);
+        result.setSummaryMessage(String.format("删除成功，共删除 %d 条记录", result.getSuccessCount()));
         return result;
+    }
+
+    private String validateInboundRecordDeletion(Long id) {
+        if (!inboundRecordRepository.existsById(id)) {
+            return "入库记录不存在";
+        }
+        return "入库记录已生效并影响库存，当前不允许删除";
+    }
+
+    private String validateOutboundRecordDeletion(Long id) {
+        OutboundRecord record = outboundRecordRepository.findById(id).orElse(null);
+        if (record == null) {
+            return "出库记录不存在";
+        }
+        if (record.getStatus() == OutboundStatus.PENDING || record.getStatus() == OutboundStatus.REJECTED) {
+            return null;
+        }
+        if (record.getStatus() == OutboundStatus.COMPLETED || record.getStatus() == OutboundStatus.APPROVED) {
+            return "出库记录已完成并影响库存，当前不允许删除";
+        }
+        return "当前状态的出库记录不允许删除";
+    }
+
+    private void markRollbackForSuccessfulItems(BatchDeleteResult result, String reason) {
+        for (BatchDeleteItemResult item : result.getItems()) {
+            if (item.isSuccess()) {
+                item.setReason(reason);
+            }
+        }
+    }
+
+    private void markSuccessForItems(BatchDeleteResult result, String reason) {
+        for (BatchDeleteItemResult item : result.getItems()) {
+            if (item.isSuccess()) {
+                item.setReason(reason);
+            }
+        }
     }
 
     private void checkStockAlert(Long materialId) {
