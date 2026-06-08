@@ -64,6 +64,12 @@ public class MaterialController {
         return ApiResponse.success(materialService.getLowStockMaterials(threshold));
     }
 
+    @GetMapping("/alert-center")
+    public ApiResponse<List<Material>> getAlertMaterials(
+            @RequestParam(required = false) Long categoryId) {
+        return ApiResponse.success(materialService.getAlertMaterials(categoryId));
+    }
+
     @PostMapping("/import")
     @OperationLog(type = OperationType.IMPORT, description = "导入物资", target = "物资")
     public ApiResponse<ImportResult> importMaterials(@RequestParam("file") MultipartFile file) {

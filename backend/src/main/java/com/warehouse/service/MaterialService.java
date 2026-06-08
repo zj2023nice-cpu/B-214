@@ -111,6 +111,13 @@ public class MaterialService {
         return materialRepository.findByStockQuantityLessThan(threshold);
     }
 
+    public List<Material> getAlertMaterials(Long categoryId) {
+        if (categoryId != null) {
+            return materialRepository.findAlertMaterialsByCategory(categoryId);
+        }
+        return materialRepository.findAlertMaterials();
+    }
+
     @Transactional
     public ImportResult importMaterials(MultipartFile file) throws IOException {
         String originalFilename = file.getOriginalFilename();

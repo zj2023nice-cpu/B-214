@@ -9,6 +9,7 @@ import Outbound from '../views/inventory/Outbound.vue';
 import InventoryRecords from '../views/inventory/InventoryRecords.vue';
 import InventoryCheck from '../views/inventory/InventoryCheck.vue';
 import TransferRecord from '../views/inventory/TransferRecord.vue';
+import AlertCenter from '../views/inventory/AlertCenter.vue';
 import StockReport from '../views/report/StockReport.vue';
 import SystemSettings from '../views/settings/SystemSettings.vue';
 import OperationLog from '../views/settings/OperationLog.vue';
@@ -80,6 +81,12 @@ const routes = [
         name: 'TransferRecord',
         component: TransferRecord,
         meta: { title: '物资调拨', roles: ['ADMIN', 'USER'] }
+      },
+      {
+        path: 'inventory/alert-center',
+        name: 'AlertCenter',
+        component: AlertCenter,
+        meta: { title: '库存预警中心', roles: ['ADMIN', 'USER'] }
       },
       {
         path: 'reports/stock',

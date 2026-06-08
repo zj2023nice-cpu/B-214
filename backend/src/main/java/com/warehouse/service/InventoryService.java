@@ -163,7 +163,7 @@ public class InventoryService {
                     "库存预警",
                     "物资「" + material.getName() + "」库存不足！当前库存：" + material.getStockQuantity() + "，预警阈值：" + material.getAlertThreshold(),
                     "WARNING",
-                    "/materials"
+                    "/inventory/alert-center"
             );
             material.setAlertSent(true);
             materialRepository.save(material);

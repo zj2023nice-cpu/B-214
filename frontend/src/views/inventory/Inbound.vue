@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, nextTick } from 'vue';
+import { useRoute } from 'vue-router';
 import axios from '../../api/axios';
 import { ElMessage } from 'element-plus';
+
+const route = useRoute();
 
 const materials = ref([]);
 const suppliers = ref([]);
@@ -100,11 +103,25 @@ const handleMaterialChange = (val: number) => {
   }
 };
 
-onMounted(() => {
-  fetchMaterials();
-  fetchSuppliers();
-  fetchWarehouses();
+const applyPrefillFromRoute = () => {
+  const q = route.query;
+  if (q.materialId) {
+    form.value.material.id = Number(q.materialId);
+    if (q.price) form.value.price = Number(q.price);
+    if (q.suggestedQty) form.value.quantity = Number(q.suggestedQty);
+    if (q.supplierId) form.value.supplier.id = Number(q.supplierId);
+    if (q.materialCode || q.materialName) {
+      form.value.remark = '来自库存预警中心补货';
+    }
+  }
+};
+
+onMounted(async () => {
+  await Promise.all([fetchMaterials(), fetchSuppliers(), fetchWarehouses()]);
   generateSerialNo();
+  nextTick(() => {
+    applyPrefillFromRoute();
+  });
 });
 </script>
 
