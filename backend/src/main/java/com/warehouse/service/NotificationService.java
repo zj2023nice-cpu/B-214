@@ -5,8 +5,10 @@ import com.warehouse.entity.User;
 import com.warehouse.repository.NotificationRepository;
 import com.warehouse.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +17,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
@@ -32,6 +35,15 @@ public class NotificationService {
             notification.setCreatedAt(LocalDateTime.now());
             notification.setUser(user);
             notificationRepository.save(notification);
+        }
+    }
+
+    @Async
+    public void sendNotificationToAllUsersAsync(String title, String content, String type, String link) {
+        try {
+            sendNotificationToAllUsers(title, content, type, link);
+        } catch (Exception e) {
+            log.error("异步发送通知失败: title={}, error={}", title, e.getMessage(), e);
         }
     }
 

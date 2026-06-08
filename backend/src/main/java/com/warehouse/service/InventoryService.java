@@ -57,14 +57,14 @@ public class InventoryService {
 
         InboundRecord saved = inboundRecordRepository.save(record);
 
-        notificationService.sendNotificationToAllUsers(
+        notificationService.sendNotificationToAllUsersAsync(
                 "入库完成",
                 "物资「" + material.getName() + "」已完成入库，数量：" + record.getQuantity(),
                 "SUCCESS",
                 "/inventory/records"
         );
 
-        checkStockAlert(material);
+        checkStockAlert(material.getId());
 
         return saved;
     }
@@ -95,26 +95,39 @@ public class InventoryService {
 
         OutboundRecord saved = outboundRecordRepository.save(record);
 
-        notificationService.sendNotificationToAllUsers(
+        notificationService.sendNotificationToAllUsersAsync(
                 "出库完成",
                 "物资「" + material.getName() + "」已完成出库，数量：" + record.getQuantity(),
                 "SUCCESS",
                 "/inventory/records"
         );
 
-        checkStockAlert(material);
+        checkStockAlert(material.getId());
 
         return saved;
     }
 
-    private void checkStockAlert(Material material) {
-        if (material.getAlertThreshold() != null && material.getStockQuantity() < material.getAlertThreshold()) {
-            notificationService.sendNotificationToAllUsers(
+    private void checkStockAlert(Long materialId) {
+        Material material = materialRepository.findById(materialId).orElse(null);
+        if (material == null || material.getAlertThreshold() == null) {
+            return;
+        }
+
+        boolean isAlert = material.getStockQuantity() < material.getAlertThreshold();
+        boolean wasAlert = Boolean.TRUE.equals(material.getAlertSent());
+
+        if (isAlert && !wasAlert) {
+            notificationService.sendNotificationToAllUsersAsync(
                     "库存预警",
                     "物资「" + material.getName() + "」库存不足！当前库存：" + material.getStockQuantity() + "，预警阈值：" + material.getAlertThreshold(),
                     "WARNING",
                     "/materials"
             );
+            material.setAlertSent(true);
+            materialRepository.save(material);
+        } else if (!isAlert && wasAlert) {
+            material.setAlertSent(false);
+            materialRepository.save(material);
         }
     }
 

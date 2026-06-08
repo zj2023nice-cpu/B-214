@@ -37,6 +37,9 @@ public class Material {
     @Column(name = "images", length = 2000)
     private String images;
 
+    @Column(name = "alert_sent")
+    private Boolean alertSent = false;
+
     @Transient
     public java.util.List<String> getImageList() {
         if (images == null || images.isBlank()) return java.util.Collections.emptyList();
