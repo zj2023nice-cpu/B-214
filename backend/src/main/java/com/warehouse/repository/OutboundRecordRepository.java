@@ -27,4 +27,14 @@ public interface OutboundRecordRepository extends JpaRepository<OutboundRecord, 
            "WHERE obr.outboundTime BETWEEN :startDate AND :endDate " +
            "ORDER BY obr.outboundTime DESC")
     List<OutboundRecord> findByOutboundTimeBetween(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+
+    @Query("SELECT obr FROM OutboundRecord obr " +
+           "WHERE obr.outboundTime >= :startDate " +
+           "ORDER BY obr.outboundTime DESC")
+    List<OutboundRecord> findByOutboundTimeAfterDate(@Param("startDate") LocalDateTime startDate);
+
+    @Query("SELECT obr FROM OutboundRecord obr " +
+           "WHERE obr.outboundTime <= :endDate " +
+           "ORDER BY obr.outboundTime DESC")
+    List<OutboundRecord> findByOutboundTimeBeforeDate(@Param("endDate") LocalDateTime endDate);
 }

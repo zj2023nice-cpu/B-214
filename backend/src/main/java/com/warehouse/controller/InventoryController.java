@@ -44,8 +44,12 @@ public class InventoryController {
             @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate endDate) {
         if (startDate != null && endDate != null) {
             LocalDateTime startDateTime = startDate.atStartOfDay();
-            LocalDateTime endDateTime = endDate.plusDays(1).atStartOfDay();
+            LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
             return ApiResponse.success(inventoryService.getInboundRecordsByDateRange(startDateTime, endDateTime));
+        } else if (startDate != null) {
+            return ApiResponse.success(inventoryService.getInboundRecordsAfterDate(startDate.atStartOfDay()));
+        } else if (endDate != null) {
+            return ApiResponse.success(inventoryService.getInboundRecordsBeforeDate(endDate.atTime(23, 59, 59)));
         }
         return ApiResponse.success(inventoryService.getAllInboundRecords());
     }
@@ -56,8 +60,12 @@ public class InventoryController {
             @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate endDate) {
         if (startDate != null && endDate != null) {
             LocalDateTime startDateTime = startDate.atStartOfDay();
-            LocalDateTime endDateTime = endDate.plusDays(1).atStartOfDay();
+            LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
             return ApiResponse.success(inventoryService.getOutboundRecordsByDateRange(startDateTime, endDateTime));
+        } else if (startDate != null) {
+            return ApiResponse.success(inventoryService.getOutboundRecordsAfterDate(startDate.atStartOfDay()));
+        } else if (endDate != null) {
+            return ApiResponse.success(inventoryService.getOutboundRecordsBeforeDate(endDate.atTime(23, 59, 59)));
         }
         return ApiResponse.success(inventoryService.getAllOutboundRecords());
     }
@@ -70,17 +78,26 @@ public class InventoryController {
         try {
             LocalDateTime startDateTime = null;
             LocalDateTime endDateTime = null;
-            if (startDate != null && endDate != null) {
+            if (startDate != null) {
                 startDateTime = startDate.atStartOfDay();
-                endDateTime = endDate.plusDays(1).atStartOfDay();
+            }
+            if (endDate != null) {
+                endDateTime = endDate.atTime(23, 59, 59);
             }
 
             byte[] data = inventoryService.exportRecordsCsv(type, startDateTime, endDateTime);
 
             DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyyMMdd");
-            String dateRange = (startDate != null && endDate != null)
-                    ? startDate.format(fmt) + "_" + endDate.format(fmt)
-                    : "all";
+            String dateRange;
+            if (startDate != null && endDate != null) {
+                dateRange = startDate.format(fmt) + "_" + endDate.format(fmt);
+            } else if (startDate != null) {
+                dateRange = startDate.format(fmt) + "_latest";
+            } else if (endDate != null) {
+                dateRange = "earliest_" + endDate.format(fmt);
+            } else {
+                dateRange = "all";
+            }
             String filename = type.equals("inbound")
                     ? "inbound_records_" + dateRange + ".csv"
                     : "outbound_records_" + dateRange + ".csv";

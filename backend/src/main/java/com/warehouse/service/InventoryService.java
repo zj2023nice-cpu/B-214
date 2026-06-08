@@ -139,6 +139,14 @@ public class InventoryService {
         return inboundRecordRepository.findByInboundTimeBetween(startDate, endDate);
     }
 
+    public List<InboundRecord> getInboundRecordsAfterDate(LocalDateTime startDate) {
+        return inboundRecordRepository.findByInboundTimeAfterDate(startDate);
+    }
+
+    public List<InboundRecord> getInboundRecordsBeforeDate(LocalDateTime endDate) {
+        return inboundRecordRepository.findByInboundTimeBeforeDate(endDate);
+    }
+
     public List<OutboundRecord> getAllOutboundRecords() {
         return outboundRecordRepository.findAll();
     }
@@ -147,14 +155,42 @@ public class InventoryService {
         return outboundRecordRepository.findByOutboundTimeBetween(startDate, endDate);
     }
 
+    public List<OutboundRecord> getOutboundRecordsAfterDate(LocalDateTime startDate) {
+        return outboundRecordRepository.findByOutboundTimeAfterDate(startDate);
+    }
+
+    public List<OutboundRecord> getOutboundRecordsBeforeDate(LocalDateTime endDate) {
+        return outboundRecordRepository.findByOutboundTimeBeforeDate(endDate);
+    }
+
+    private List<InboundRecord> resolveInboundRecords(LocalDateTime startDate, LocalDateTime endDate) {
+        if (startDate != null && endDate != null) {
+            return getInboundRecordsByDateRange(startDate, endDate);
+        } else if (startDate != null) {
+            return getInboundRecordsAfterDate(startDate);
+        } else if (endDate != null) {
+            return getInboundRecordsBeforeDate(endDate);
+        }
+        return getAllInboundRecords();
+    }
+
+    private List<OutboundRecord> resolveOutboundRecords(LocalDateTime startDate, LocalDateTime endDate) {
+        if (startDate != null && endDate != null) {
+            return getOutboundRecordsByDateRange(startDate, endDate);
+        } else if (startDate != null) {
+            return getOutboundRecordsAfterDate(startDate);
+        } else if (endDate != null) {
+            return getOutboundRecordsBeforeDate(endDate);
+        }
+        return getAllOutboundRecords();
+    }
+
     public byte[] exportRecordsCsv(String type, LocalDateTime startDate, LocalDateTime endDate) throws IOException {
         StringBuilder sb = new StringBuilder();
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
         if ("inbound".equals(type)) {
-            List<InboundRecord> records = (startDate != null && endDate != null)
-                    ? getInboundRecordsByDateRange(startDate, endDate)
-                    : getAllInboundRecords();
+            List<InboundRecord> records = resolveInboundRecords(startDate, endDate);
             sb.append("\uFEFF");
             sb.append("入库单号,物资编号,物资名称,数量,单价,入库时间,供应商,备注\n");
             for (InboundRecord r : records) {
@@ -168,9 +204,7 @@ public class InventoryService {
                 sb.append(csvEscape(r.getRemark() != null ? r.getRemark() : "")).append('\n');
             }
         } else {
-            List<OutboundRecord> records = (startDate != null && endDate != null)
-                    ? getOutboundRecordsByDateRange(startDate, endDate)
-                    : getAllOutboundRecords();
+            List<OutboundRecord> records = resolveOutboundRecords(startDate, endDate);
             sb.append("\uFEFF");
             sb.append("出库单号,物资编号,物资名称,数量,单价,出库时间,领用部门,备注\n");
             for (OutboundRecord r : records) {
