@@ -2,19 +2,73 @@
 import { ref, onMounted } from 'vue';
 import axios from '../../api/axios';
 import dayjs from 'dayjs';
+import { ElMessage } from 'element-plus';
 
 const activeTab = ref('inbound');
 const inboundRecords = ref([]);
 const outboundRecords = ref([]);
+const dateRange = ref<[string, string] | null>(null);
+const exporting = ref(false);
 
 const fetchInbound = async () => {
-  const res: any = await axios.get('/inventory/records/inbound');
+  const params: any = {};
+  if (dateRange.value) {
+    params.startDate = dateRange.value[0];
+    params.endDate = dateRange.value[1];
+  }
+  const res: any = await axios.get('/inventory/records/inbound', { params });
   if (res.code === 200) inboundRecords.value = res.data;
 };
 
 const fetchOutbound = async () => {
-  const res: any = await axios.get('/inventory/records/outbound');
+  const params: any = {};
+  if (dateRange.value) {
+    params.startDate = dateRange.value[0];
+    params.endDate = dateRange.value[1];
+  }
+  const res: any = await axios.get('/inventory/records/outbound', { params });
   if (res.code === 200) outboundRecords.value = res.data;
+};
+
+const handleSearch = () => {
+  if (activeTab.value === 'inbound') fetchInbound();
+  else fetchOutbound();
+};
+
+const handleReset = () => {
+  dateRange.value = null;
+  if (activeTab.value === 'inbound') fetchInbound();
+  else fetchOutbound();
+};
+
+const handleExport = async () => {
+  if (exporting.value) return;
+  exporting.value = true;
+  try {
+    const params: any = { type: activeTab.value };
+    if (dateRange.value) {
+      params.startDate = dateRange.value[0];
+      params.endDate = dateRange.value[1];
+    }
+    const response = await fetch(`/api/inventory/records/export?${new URLSearchParams(params).toString()}`);
+    if (!response.ok) throw new Error('Export failed');
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const disposition = response.headers.get('Content-Disposition');
+    const match = disposition?.match(/filename=(.+)/);
+    link.download = match ? match[1] : `${activeTab.value}_records.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    ElMessage.success('导出成功');
+  } catch {
+    ElMessage.error('导出失败');
+  } finally {
+    exporting.value = false;
+  }
 };
 
 const formatDate = (date: string) => {
@@ -33,6 +87,22 @@ onMounted(() => {
 
 <template>
   <div class="records-container">
+    <div class="filter-bar">
+      <el-date-picker
+        v-model="dateRange"
+        type="daterange"
+        range-separator="至"
+        start-placeholder="开始日期"
+        end-placeholder="结束日期"
+        value-format="YYYY-MM-DD"
+        style="margin-right: 12px"
+      />
+      <el-button type="primary" @click="handleSearch">查询</el-button>
+      <el-button @click="handleReset">重置</el-button>
+      <el-button type="success" :loading="exporting" :disabled="exporting" @click="handleExport">
+        {{ exporting ? '导出中...' : '导出' }}
+      </el-button>
+    </div>
     <el-tabs v-model="activeTab" @tab-change="handleTabChange">
       <el-tab-pane label="入库记录" name="inbound">
         <el-table :data="inboundRecords" border style="width: 100%">
@@ -78,5 +148,10 @@ onMounted(() => {
   padding: 20px;
   background-color: white;
   border-radius: 8px;
+}
+.filter-bar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
 }
 </style>

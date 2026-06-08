@@ -22,4 +22,9 @@ public interface OutboundRecordRepository extends JpaRepository<OutboundRecord, 
            "WHERE obr.outboundTime >= :start AND obr.outboundTime < :end " +
            "GROUP BY obr.material.id")
     List<Object[]> findMonthlyOutboundByMaterial(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    @Query("SELECT obr FROM OutboundRecord obr " +
+           "WHERE obr.outboundTime BETWEEN :startDate AND :endDate " +
+           "ORDER BY obr.outboundTime DESC")
+    List<OutboundRecord> findByOutboundTimeBetween(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
 }

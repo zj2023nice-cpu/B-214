@@ -14,6 +14,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @RestController
@@ -36,13 +39,59 @@ public class InventoryController {
     }
 
     @GetMapping("/records/inbound")
-    public ApiResponse<List<InboundRecord>> getInboundRecords() {
+    public ApiResponse<List<InboundRecord>> getInboundRecords(
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        if (startDate != null && endDate != null) {
+            LocalDateTime startDateTime = startDate.atStartOfDay();
+            LocalDateTime endDateTime = endDate.plusDays(1).atStartOfDay();
+            return ApiResponse.success(inventoryService.getInboundRecordsByDateRange(startDateTime, endDateTime));
+        }
         return ApiResponse.success(inventoryService.getAllInboundRecords());
     }
 
     @GetMapping("/records/outbound")
-    public ApiResponse<List<OutboundRecord>> getOutboundRecords() {
+    public ApiResponse<List<OutboundRecord>> getOutboundRecords(
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        if (startDate != null && endDate != null) {
+            LocalDateTime startDateTime = startDate.atStartOfDay();
+            LocalDateTime endDateTime = endDate.plusDays(1).atStartOfDay();
+            return ApiResponse.success(inventoryService.getOutboundRecordsByDateRange(startDateTime, endDateTime));
+        }
         return ApiResponse.success(inventoryService.getAllOutboundRecords());
+    }
+
+    @GetMapping("/records/export")
+    public ResponseEntity<byte[]> exportRecords(
+            @RequestParam String type,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        try {
+            LocalDateTime startDateTime = null;
+            LocalDateTime endDateTime = null;
+            if (startDate != null && endDate != null) {
+                startDateTime = startDate.atStartOfDay();
+                endDateTime = endDate.plusDays(1).atStartOfDay();
+            }
+
+            byte[] data = inventoryService.exportRecordsCsv(type, startDateTime, endDateTime);
+
+            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyyMMdd");
+            String dateRange = (startDate != null && endDate != null)
+                    ? startDate.format(fmt) + "_" + endDate.format(fmt)
+                    : "all";
+            String filename = type.equals("inbound")
+                    ? "inbound_records_" + dateRange + ".csv"
+                    : "outbound_records_" + dateRange + ".csv";
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(data);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     @GetMapping("/statistics/trend")

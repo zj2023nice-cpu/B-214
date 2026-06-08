@@ -135,8 +135,64 @@ public class InventoryService {
         return inboundRecordRepository.findAll();
     }
 
+    public List<InboundRecord> getInboundRecordsByDateRange(LocalDateTime startDate, LocalDateTime endDate) {
+        return inboundRecordRepository.findByInboundTimeBetween(startDate, endDate);
+    }
+
     public List<OutboundRecord> getAllOutboundRecords() {
         return outboundRecordRepository.findAll();
+    }
+
+    public List<OutboundRecord> getOutboundRecordsByDateRange(LocalDateTime startDate, LocalDateTime endDate) {
+        return outboundRecordRepository.findByOutboundTimeBetween(startDate, endDate);
+    }
+
+    public byte[] exportRecordsCsv(String type, LocalDateTime startDate, LocalDateTime endDate) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+        if ("inbound".equals(type)) {
+            List<InboundRecord> records = (startDate != null && endDate != null)
+                    ? getInboundRecordsByDateRange(startDate, endDate)
+                    : getAllInboundRecords();
+            sb.append("\uFEFF");
+            sb.append("入库单号,物资编号,物资名称,数量,单价,入库时间,供应商,备注\n");
+            for (InboundRecord r : records) {
+                sb.append(csvEscape(r.getSerialNo())).append(',');
+                sb.append(csvEscape(r.getMaterial() != null ? r.getMaterial().getCode() : "")).append(',');
+                sb.append(csvEscape(r.getMaterial() != null ? r.getMaterial().getName() : "")).append(',');
+                sb.append(r.getQuantity()).append(',');
+                sb.append(r.getPrice() != null ? r.getPrice() : "").append(',');
+                sb.append(r.getInboundTime() != null ? r.getInboundTime().format(fmt) : "").append(',');
+                sb.append(csvEscape(r.getSupplier() != null ? r.getSupplier().getName() : "")).append(',');
+                sb.append(csvEscape(r.getRemark() != null ? r.getRemark() : "")).append('\n');
+            }
+        } else {
+            List<OutboundRecord> records = (startDate != null && endDate != null)
+                    ? getOutboundRecordsByDateRange(startDate, endDate)
+                    : getAllOutboundRecords();
+            sb.append("\uFEFF");
+            sb.append("出库单号,物资编号,物资名称,数量,单价,出库时间,领用部门,备注\n");
+            for (OutboundRecord r : records) {
+                sb.append(csvEscape(r.getSerialNo())).append(',');
+                sb.append(csvEscape(r.getMaterial() != null ? r.getMaterial().getCode() : "")).append(',');
+                sb.append(csvEscape(r.getMaterial() != null ? r.getMaterial().getName() : "")).append(',');
+                sb.append(r.getQuantity()).append(',');
+                sb.append(r.getPrice() != null ? r.getPrice() : "").append(',');
+                sb.append(r.getOutboundTime() != null ? r.getOutboundTime().format(fmt) : "").append(',');
+                sb.append(csvEscape(r.getDepartment() != null ? r.getDepartment() : "")).append(',');
+                sb.append(csvEscape(r.getRemark() != null ? r.getRemark() : "")).append('\n');
+            }
+        }
+        return sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    private String csvEscape(String value) {
+        if (value == null) return "";
+        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+            return "\"" + value.replace("\"", "\"\"") + "\"";
+        }
+        return value;
     }
 
     public List<DailyTrendDTO> getDailyTrend(int days) {

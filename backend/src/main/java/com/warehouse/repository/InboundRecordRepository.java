@@ -22,4 +22,9 @@ public interface InboundRecordRepository extends JpaRepository<InboundRecord, Lo
            "WHERE ir.inboundTime >= :start AND ir.inboundTime < :end " +
            "GROUP BY ir.material.id")
     List<Object[]> findMonthlyInboundByMaterial(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    @Query("SELECT ir FROM InboundRecord ir " +
+           "WHERE ir.inboundTime BETWEEN :startDate AND :endDate " +
+           "ORDER BY ir.inboundTime DESC")
+    List<InboundRecord> findByInboundTimeBetween(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
 }
