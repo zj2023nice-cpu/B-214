@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import NotificationPopover from '../components/NotificationPopover.vue';
 import { 
   Menu as MenuIcon, 
   House, 
@@ -121,6 +122,7 @@ const logout = () => {
           </div>
           
           <div class="navbar-right">
+            <NotificationPopover />
             <el-dropdown trigger="click">
               <div class="avatar-wrapper">
                 <el-avatar :size="30" :icon="UserFilled" class="user-avatar" />

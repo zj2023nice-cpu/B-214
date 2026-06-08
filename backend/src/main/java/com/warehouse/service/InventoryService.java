@@ -32,6 +32,7 @@ public class InventoryService {
     private final MaterialRepository materialRepository;
     private final WarehouseRepository warehouseRepository;
     private final WarehouseInventoryService warehouseInventoryService;
+    private final NotificationService notificationService;
 
     @Transactional
     public InboundRecord processInbound(InboundRecord record) {
@@ -54,7 +55,18 @@ public class InventoryService {
             materialRepository.save(material);
         }
 
-        return inboundRecordRepository.save(record);
+        InboundRecord saved = inboundRecordRepository.save(record);
+
+        notificationService.sendNotificationToAllUsers(
+                "入库完成",
+                "物资「" + material.getName() + "」已完成入库，数量：" + record.getQuantity(),
+                "SUCCESS",
+                "/inventory/records"
+        );
+
+        checkStockAlert(material);
+
+        return saved;
     }
 
     @Transactional
@@ -81,7 +93,29 @@ public class InventoryService {
             materialRepository.save(material);
         }
 
-        return outboundRecordRepository.save(record);
+        OutboundRecord saved = outboundRecordRepository.save(record);
+
+        notificationService.sendNotificationToAllUsers(
+                "出库完成",
+                "物资「" + material.getName() + "」已完成出库，数量：" + record.getQuantity(),
+                "SUCCESS",
+                "/inventory/records"
+        );
+
+        checkStockAlert(material);
+
+        return saved;
+    }
+
+    private void checkStockAlert(Material material) {
+        if (material.getAlertThreshold() != null && material.getStockQuantity() < material.getAlertThreshold()) {
+            notificationService.sendNotificationToAllUsers(
+                    "库存预警",
+                    "物资「" + material.getName() + "」库存不足！当前库存：" + material.getStockQuantity() + "，预警阈值：" + material.getAlertThreshold(),
+                    "WARNING",
+                    "/materials"
+            );
+        }
     }
 
     public List<InboundRecord> getAllInboundRecords() {
