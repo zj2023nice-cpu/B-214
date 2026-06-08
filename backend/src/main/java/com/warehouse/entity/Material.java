@@ -17,9 +17,9 @@ public class Material {
     @Column(nullable = false)
     private String name;
 
-    private String spec; // 规格型号
-    private String unit; // 单位
-    private Double price; // 单价
+    private String spec;
+    private String unit;
+    private Double price;
 
     @ManyToOne
     @JoinColumn(name = "category_id")
@@ -30,7 +30,27 @@ public class Material {
     private Supplier supplier;
 
     @Column(nullable = false)
-    private Integer stockQuantity = 0; // 当前库存
+    private Integer stockQuantity = 0;
 
-    private Integer alertThreshold = 10; // 库存预警值
+    private Integer alertThreshold = 10;
+
+    @Column(name = "images", length = 2000)
+    private String images;
+
+    @Transient
+    public java.util.List<String> getImageList() {
+        if (images == null || images.isBlank()) return java.util.Collections.emptyList();
+        return java.util.Arrays.stream(images.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    public void setImageList(java.util.List<String> imageList) {
+        if (imageList == null || imageList.isEmpty()) {
+            this.images = null;
+        } else {
+            this.images = String.join(",", imageList);
+        }
+    }
 }

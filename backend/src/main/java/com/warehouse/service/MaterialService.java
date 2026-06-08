@@ -62,6 +62,7 @@ public class MaterialService {
         if (material.getAlertThreshold() != null) existing.setAlertThreshold(material.getAlertThreshold());
         if (material.getCategory() != null) existing.setCategory(material.getCategory());
         if (material.getSupplier() != null) existing.setSupplier(material.getSupplier());
+        if (material.getImages() != null) existing.setImages(material.getImages());
         return materialRepository.save(existing);
     }
 
