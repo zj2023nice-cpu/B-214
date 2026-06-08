@@ -34,6 +34,12 @@ public class MaterialController {
         return ApiResponse.success(materialService.saveMaterial(material));
     }
 
+    @PutMapping("/{id}")
+    @OperationLog(type = OperationType.UPDATE, description = "修改物资", target = "物资")
+    public ApiResponse<Material> updateMaterial(@PathVariable Long id, @RequestBody Material material) {
+        return ApiResponse.success(materialService.updateMaterial(id, material));
+    }
+
     @DeleteMapping("/{id}")
     @RequireRole("ADMIN")
     @OperationLog(type = OperationType.DELETE, description = "删除物资", target = "物资")

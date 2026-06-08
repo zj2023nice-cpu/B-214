@@ -28,6 +28,12 @@ public class SupplierController {
         return ApiResponse.success(supplierService.createSupplier(supplier));
     }
 
+    @PutMapping("/{id}")
+    @OperationLog(type = OperationType.UPDATE, description = "修改供应商", target = "供应商")
+    public ApiResponse<Supplier> updateSupplier(@PathVariable Long id, @RequestBody Supplier supplier) {
+        return ApiResponse.success(supplierService.updateSupplier(id, supplier));
+    }
+
     @DeleteMapping("/{id}")
     @OperationLog(type = OperationType.DELETE, description = "删除供应商", target = "供应商")
     public ApiResponse<Void> deleteSupplier(@PathVariable Long id) {

@@ -28,6 +28,12 @@ public class CategoryController {
         return ApiResponse.success(categoryService.createCategory(category));
     }
 
+    @PutMapping("/{id}")
+    @OperationLog(type = OperationType.UPDATE, description = "修改分类", target = "分类")
+    public ApiResponse<Category> updateCategory(@PathVariable Long id, @RequestBody Category category) {
+        return ApiResponse.success(categoryService.updateCategory(id, category));
+    }
+
     @DeleteMapping("/{id}")
     @OperationLog(type = OperationType.DELETE, description = "删除分类", target = "分类")
     public ApiResponse<Void> deleteCategory(@PathVariable Long id) {

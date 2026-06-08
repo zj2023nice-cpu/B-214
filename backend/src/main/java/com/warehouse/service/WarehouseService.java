@@ -25,6 +25,16 @@ public class WarehouseService {
         return warehouseRepository.save(warehouse);
     }
 
+    public Warehouse updateWarehouse(Long id, Warehouse warehouse) {
+        Warehouse existing = warehouseRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("仓库不存在"));
+        if (warehouse.getCode() != null) existing.setCode(warehouse.getCode());
+        if (warehouse.getName() != null) existing.setName(warehouse.getName());
+        if (warehouse.getAddress() != null) existing.setAddress(warehouse.getAddress());
+        if (warehouse.getManager() != null) existing.setManager(warehouse.getManager());
+        return warehouseRepository.save(existing);
+    }
+
     public void deleteWarehouse(Long id) {
         warehouseRepository.deleteById(id);
     }

@@ -29,6 +29,12 @@ public class WarehouseController {
     public ApiResponse<Warehouse> create(@RequestBody Warehouse warehouse) {
         return ApiResponse.success(warehouseService.saveWarehouse(warehouse));
     }
+
+    @PutMapping("/{id}")
+    @OperationLog(type = OperationType.UPDATE, description = "修改仓库", target = "仓库")
+    public ApiResponse<Warehouse> update(@PathVariable Long id, @RequestBody Warehouse warehouse) {
+        return ApiResponse.success(warehouseService.updateWarehouse(id, warehouse));
+    }
     
     @DeleteMapping("/{id}")
     @RequireRole("ADMIN")

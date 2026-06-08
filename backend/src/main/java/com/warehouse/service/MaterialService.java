@@ -50,6 +50,21 @@ public class MaterialService {
         return materialRepository.save(material);
     }
 
+    public Material updateMaterial(Long id, Material material) {
+        Material existing = materialRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("物资不存在"));
+        if (material.getCode() != null) existing.setCode(material.getCode());
+        if (material.getName() != null) existing.setName(material.getName());
+        if (material.getSpec() != null) existing.setSpec(material.getSpec());
+        if (material.getUnit() != null) existing.setUnit(material.getUnit());
+        if (material.getPrice() != null) existing.setPrice(material.getPrice());
+        if (material.getStockQuantity() != null) existing.setStockQuantity(material.getStockQuantity());
+        if (material.getAlertThreshold() != null) existing.setAlertThreshold(material.getAlertThreshold());
+        if (material.getCategory() != null) existing.setCategory(material.getCategory());
+        if (material.getSupplier() != null) existing.setSupplier(material.getSupplier());
+        return materialRepository.save(existing);
+    }
+
     public void deleteMaterial(Long id) {
         materialRepository.deleteById(id);
     }
