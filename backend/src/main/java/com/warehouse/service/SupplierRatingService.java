@@ -53,11 +53,12 @@ public class SupplierRatingService {
     }
 
     @Transactional
-    public SupplierRatingDTO updateRating(Long userId, Long supplierId, Integer rating, String content) {
-        SupplierRating existing = ratingRepository.findBySupplierIdOrderByRatingTimeDesc(supplierId).stream()
-                .filter(r -> r.getUser().getId().equals(userId))
-                .findFirst()
+    public SupplierRatingDTO updateRating(Long ratingId, Long userId, Integer rating, String content) {
+        SupplierRating existing = ratingRepository.findById(ratingId)
                 .orElseThrow(() -> new RuntimeException("评价不存在"));
+        if (!existing.getUser().getId().equals(userId)) {
+            throw new RuntimeException("只能修改自己的评价");
+        }
 
         if (rating != null) {
             if (rating < 1 || rating > 5) {
@@ -122,13 +123,16 @@ public class SupplierRatingService {
         }
 
         return suppliers.stream().map(supplier -> {
+            Double avgRating = supplierRepository.findAverageRatingBySupplierId(supplier.getId());
+            supplier.setAverageRating(avgRating != null ? Math.round(avgRating * 10.0) / 10.0 : 0.0);
+
             SupplierWithRatingDTO dto = new SupplierWithRatingDTO();
             dto.setId(supplier.getId());
             dto.setName(supplier.getName());
             dto.setContactPerson(supplier.getContactPerson());
             dto.setPhone(supplier.getPhone());
             dto.setAddress(supplier.getAddress());
-            dto.setAverageRating(avgMap.getOrDefault(supplier.getId(), 0.0));
+            dto.setAverageRating(supplier.getAverageRating());
             dto.setRatingCount(ratingRepository.countBySupplierId(supplier.getId()));
             dto.setLatestRatings(
                     ratingRepository.findTop3BySupplierIdOrderByRatingTimeDesc(supplier.getId()).stream()

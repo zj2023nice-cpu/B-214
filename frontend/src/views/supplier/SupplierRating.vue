@@ -7,9 +7,11 @@ import { WarningFilled } from '@element-plus/icons-vue';
 const suppliers = ref<any[]>([]);
 const ratingDialogVisible = ref(false);
 const detailDialogVisible = ref(false);
+const editDialogVisible = ref(false);
 const currentSupplier = ref<any>(null);
 const detailRatings = ref<any[]>([]);
 const ratingForm = ref({ rating: 0, content: '' });
+const editForm = ref({ id: 0, rating: 0, content: '' });
 const hasRated = ref(false);
 const user = JSON.parse(localStorage.getItem('user') || '{}');
 
@@ -63,6 +65,36 @@ const openDetailDialog = async (supplier: any) => {
     detailRatings.value = res.data;
   }
   detailDialogVisible.value = true;
+};
+
+const handleEditRating = (row: any) => {
+  editForm.value = { id: row.id, rating: row.rating, content: row.content || '' };
+  editDialogVisible.value = true;
+};
+
+const handleUpdateRating = async () => {
+  if (editForm.value.rating === 0) {
+    ElMessage.warning('请选择评分');
+    return;
+  }
+  try {
+    const res: any = await axios.put(`/supplier-ratings/${editForm.value.id}`, {
+      rating: editForm.value.rating,
+      content: editForm.value.content
+    });
+    if (res.code === 200) {
+      ElMessage.success('修改成功');
+      editDialogVisible.value = false;
+      const detailRes: any = await axios.get(`/supplier-ratings/supplier/${currentSupplier.value.id}`);
+      if (detailRes.code === 200) {
+        detailRatings.value = detailRes.data;
+      }
+      fetchSuppliers();
+    }
+  } catch (error: any) {
+    const msg = error.response?.data?.message || '修改失败';
+    ElMessage.error(msg);
+  }
 };
 
 const handleDeleteRating = (ratingId: number) => {
@@ -181,8 +213,14 @@ onMounted(() => {
             {{ formatTime(scope.row.ratingTime) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="80">
+        <el-table-column label="操作" width="140">
           <template #default="scope">
+            <el-button
+              v-if="scope.row.userId === user.id"
+              size="small"
+              type="primary"
+              @click="handleEditRating(scope.row)"
+            >编辑</el-button>
             <el-button
               v-if="scope.row.userId === user.id"
               size="small"
@@ -194,6 +232,21 @@ onMounted(() => {
       </el-table>
       <template #footer>
         <el-button @click="detailDialogVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="editDialogVisible" title="编辑评价" width="500px">
+      <el-form :model="editForm" label-width="80px">
+        <el-form-item label="评分">
+          <el-rate v-model="editForm.rating" :texts="['很差', '较差', '一般', '较好', '很好']" show-text />
+        </el-form-item>
+        <el-form-item label="评价内容">
+          <el-input v-model="editForm.content" type="textarea" :rows="4" placeholder="请输入评价内容（选填）" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleUpdateRating">保存修改</el-button>
       </template>
     </el-dialog>
   </div>

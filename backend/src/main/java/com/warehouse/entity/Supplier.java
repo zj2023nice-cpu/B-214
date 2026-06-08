@@ -17,4 +17,15 @@ public class Supplier {
     private String contactPerson;
     private String phone;
     private String address;
+
+    @Transient
+    private Double averageRating;
+
+    public Double getAverageRating() {
+        return averageRating;
+    }
+
+    public void setAverageRating(Double averageRating) {
+        this.averageRating = averageRating;
+    }
 }

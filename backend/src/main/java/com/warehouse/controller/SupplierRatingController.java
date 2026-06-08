@@ -44,7 +44,7 @@ public class SupplierRatingController {
             HttpServletRequest httpRequest) {
         Long userId = getCurrentUserId(httpRequest);
         SupplierRatingDTO dto = ratingService.updateRating(
-                userId, request.getSupplierId(), request.getRating(), request.getContent());
+                id, userId, request.getRating(), request.getContent());
         return ApiResponse.success(dto);
     }
 
@@ -94,7 +94,6 @@ public class SupplierRatingController {
 
     @Data
     public static class UpdateRatingRequest {
-        private Long supplierId;
         private Integer rating;
         private String content;
     }
