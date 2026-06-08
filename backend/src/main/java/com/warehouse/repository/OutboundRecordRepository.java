@@ -16,4 +16,10 @@ public interface OutboundRecordRepository extends JpaRepository<OutboundRecord, 
            "GROUP BY FUNCTION('DATE', obr.outboundTime) " +
            "ORDER BY d")
     List<Object[]> findDailyOutboundTotals(@Param("startDate") LocalDateTime startDate);
+
+    @Query("SELECT obr.material.id, SUM(obr.quantity) " +
+           "FROM OutboundRecord obr " +
+           "WHERE obr.outboundTime >= :start AND obr.outboundTime < :end " +
+           "GROUP BY obr.material.id")
+    List<Object[]> findMonthlyOutboundByMaterial(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 }

@@ -1,6 +1,7 @@
 package com.warehouse.service;
 
 import com.warehouse.dto.DailyTrendDTO;
+import com.warehouse.dto.TurnoverRateDTO;
 import com.warehouse.entity.InboundRecord;
 import com.warehouse.entity.Material;
 import com.warehouse.entity.OutboundRecord;
@@ -10,15 +11,18 @@ import com.warehouse.repository.MaterialRepository;
 import com.warehouse.repository.OutboundRecordRepository;
 import com.warehouse.repository.WarehouseRepository;
 import lombok.RequiredArgsConstructor;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -123,5 +127,93 @@ public class InventoryService {
                         e.getValue()[0],
                         e.getValue()[1]))
                 .toList();
+    }
+
+    public List<TurnoverRateDTO> getTurnoverRates(String month) {
+        LocalDate targetDate = (month != null && !month.isBlank())
+                ? LocalDate.parse(month + "-01")
+                : LocalDate.now();
+        LocalDateTime start = targetDate.withDayOfMonth(1).atStartOfDay();
+        LocalDateTime end = targetDate.plusMonths(1).withDayOfMonth(1).atStartOfDay();
+
+        List<Material> allMaterials = materialRepository.findAll();
+
+        Map<Long, Long> outboundMap = new HashMap<>();
+        for (Object[] row : outboundRecordRepository.findMonthlyOutboundByMaterial(start, end)) {
+            Long materialId = ((Number) row[0]).longValue();
+            Long total = ((Number) row[1]).longValue();
+            outboundMap.put(materialId, total);
+        }
+
+        Map<Long, Long> inboundMap = new HashMap<>();
+        for (Object[] row : inboundRecordRepository.findMonthlyInboundByMaterial(start, end)) {
+            Long materialId = ((Number) row[0]).longValue();
+            Long total = ((Number) row[1]).longValue();
+            inboundMap.put(materialId, total);
+        }
+
+        List<TurnoverRateDTO> result = new ArrayList<>();
+        for (Material m : allMaterials) {
+            if (m.getStockQuantity() == null || m.getStockQuantity() == 0) continue;
+
+            long outboundTotal = outboundMap.getOrDefault(m.getId(), 0L);
+            long inboundTotal = inboundMap.getOrDefault(m.getId(), 0L);
+
+            long endStock = m.getStockQuantity();
+            long beginStock = endStock - inboundTotal + outboundTotal;
+            if (beginStock < 0) beginStock = 0;
+
+            double avgStock = (beginStock + endStock) / 2.0;
+            if (avgStock == 0) continue;
+
+            double turnoverRate = outboundTotal / avgStock;
+
+            result.add(new TurnoverRateDTO(
+                    m.getCode(),
+                    m.getName(),
+                    outboundTotal,
+                    Math.round(avgStock * 100.0) / 100.0,
+                    Math.round(turnoverRate * 100.0) / 100.0
+            ));
+        }
+
+        result.sort((a, b) -> Double.compare(b.getTurnoverRate(), a.getTurnoverRate()));
+        return result;
+    }
+
+    public byte[] exportTurnoverRatesExcel(String month) throws IOException {
+        List<TurnoverRateDTO> data = getTurnoverRates(month);
+
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("库存周转率报表");
+
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+
+            String[] headers = {"物资编号", "物资名称", "出库总量", "平均库存量", "周转率"};
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+                sheet.setColumnWidth(i, 5000);
+            }
+
+            for (int i = 0; i < data.size(); i++) {
+                TurnoverRateDTO dto = data.get(i);
+                Row row = sheet.createRow(i + 1);
+                row.createCell(0).setCellValue(dto.getCode());
+                row.createCell(1).setCellValue(dto.getName());
+                row.createCell(2).setCellValue(dto.getOutboundTotal());
+                row.createCell(3).setCellValue(dto.getAvgStock());
+                row.createCell(4).setCellValue(dto.getTurnoverRate());
+            }
+
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            workbook.write(out);
+            return out.toByteArray();
+        }
     }
 }

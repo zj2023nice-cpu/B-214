@@ -9,6 +9,19 @@ const barChartRef = ref(null);
 let pieChart: any = null;
 let barChart: any = null;
 
+const turnoverData = ref<any[]>([]);
+const turnoverChartRef = ref(null);
+let turnoverChart: any = null;
+const selectedMonth = ref('');
+const exporting = ref(false);
+
+const getDefaultMonth = () => {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  return `${y}-${m}`;
+};
+
 const fetchMaterials = async () => {
   const res: any = await axios.get('/materials');
   if (res.code === 200) {
@@ -16,6 +29,34 @@ const fetchMaterials = async () => {
     nextTick(() => {
       initCharts();
     });
+  }
+};
+
+const fetchTurnoverRate = async () => {
+  const month = selectedMonth.value || getDefaultMonth();
+  const res: any = await axios.get('/inventory/turnover-rate', { params: { month } });
+  if (res.code === 200) {
+    turnoverData.value = res.data;
+    nextTick(() => {
+      initTurnoverChart();
+    });
+  }
+};
+
+const exportExcel = async () => {
+  const month = selectedMonth.value || getDefaultMonth();
+  exporting.value = true;
+  try {
+    const response = await fetch(`/api/inventory/turnover-rate/export?month=${month}`);
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'turnover_rate_report.xlsx';
+    link.click();
+    window.URL.revokeObjectURL(url);
+  } finally {
+    exporting.value = false;
   }
 };
 
@@ -27,7 +68,6 @@ const lowStockCount = computed(() => materials.value.filter((item: any) => item.
 const initCharts = () => {
   if (!pieChartRef.value || !barChartRef.value) return;
 
-  // Pie Chart Data: Stock by Category
   const categoryData: Record<string, number> = {};
   materials.value.forEach((item: any) => {
     const catName = item.category?.name || '未分类';
@@ -39,13 +79,11 @@ const initCharts = () => {
     value: categoryData[key]
   }));
 
-  // Bar Chart Data: Top 5 Value
   const sortedByValue = [...materials.value].map((item: any) => ({
     name: item.name,
     value: item.stockQuantity * item.price
   })).sort((a, b) => b.value - a.value).slice(0, 5);
 
-  // Init Pie Chart
   if (pieChart) pieChart.dispose();
   pieChart = echarts.init(pieChartRef.value);
   pieChart.setOption({
@@ -69,7 +107,6 @@ const initCharts = () => {
     ]
   });
 
-  // Init Bar Chart
   if (barChart) barChart.dispose();
   barChart = echarts.init(barChartRef.value);
   barChart.setOption({
@@ -88,11 +125,48 @@ const initCharts = () => {
   });
 };
 
+const initTurnoverChart = () => {
+  if (!turnoverChartRef.value) return;
+
+  const top10 = turnoverData.value.slice(0, 10);
+
+  if (turnoverChart) turnoverChart.dispose();
+  turnoverChart = echarts.init(turnoverChartRef.value);
+  turnoverChart.setOption({
+    title: { text: '库存周转率 Top 10', left: 'center' },
+    tooltip: {
+      trigger: 'axis',
+      formatter: (params: any) => {
+        const item = params[0];
+        return `${item.name}<br/>周转率: ${item.value}`;
+      }
+    },
+    xAxis: {
+      type: 'category',
+      data: top10.map((i: any) => i.name),
+      axisLabel: { rotate: 30 }
+    },
+    yAxis: { type: 'value', name: '周转率' },
+    series: [
+      {
+        data: top10.map((i: any) => i.turnoverRate),
+        type: 'bar',
+        showBackground: true,
+        backgroundStyle: { color: 'rgba(180, 180, 180, 0.2)' },
+        itemStyle: { color: '#409EFF' }
+      }
+    ]
+  });
+};
+
 onMounted(() => {
+  selectedMonth.value = getDefaultMonth();
   fetchMaterials();
+  fetchTurnoverRate();
   window.addEventListener('resize', () => {
     pieChart?.resize();
     barChart?.resize();
+    turnoverChart?.resize();
   });
 });
 </script>
@@ -139,7 +213,7 @@ onMounted(() => {
       </el-col>
     </el-row>
 
-    <el-table :data="materials" border style="width: 100%" height="400">
+    <el-table :data="materials" border style="width: 100%; margin-bottom: 20px;" height="400">
       <el-table-column prop="code" label="物资编号" />
       <el-table-column prop="name" label="物资名称" />
       <el-table-column prop="category.name" label="分类" />
@@ -152,6 +226,40 @@ onMounted(() => {
         </template>
       </el-table-column>
     </el-table>
+
+    <el-card shadow="hover" style="margin-bottom: 20px;">
+      <template #header>
+        <div class="turnover-header">
+          <span>库存周转率报表</span>
+          <div class="turnover-actions">
+            <el-date-picker
+              v-model="selectedMonth"
+              type="month"
+              placeholder="选择月份"
+              format="YYYY-MM"
+              value-format="YYYY-MM"
+              style="width: 180px; margin-right: 12px;"
+              @change="fetchTurnoverRate"
+            />
+            <el-button type="success" :loading="exporting" @click="exportExcel">导出 Excel</el-button>
+          </div>
+        </div>
+      </template>
+
+      <el-row :gutter="20" style="margin-bottom: 20px;">
+        <el-col :span="24">
+          <div ref="turnoverChartRef" style="height: 350px;"></div>
+        </el-col>
+      </el-row>
+
+      <el-table :data="turnoverData" border style="width: 100%;" height="400">
+        <el-table-column prop="code" label="物资编号" />
+        <el-table-column prop="name" label="物资名称" />
+        <el-table-column prop="outboundTotal" label="出库总量" sortable />
+        <el-table-column prop="avgStock" label="平均库存量" sortable />
+        <el-table-column prop="turnoverRate" label="周转率" sortable />
+      </el-table>
+    </el-card>
   </div>
 </template>
 
@@ -163,5 +271,14 @@ onMounted(() => {
   font-size: 24px;
   font-weight: bold;
   text-align: center;
+}
+.turnover-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.turnover-actions {
+  display: flex;
+  align-items: center;
 }
 </style>

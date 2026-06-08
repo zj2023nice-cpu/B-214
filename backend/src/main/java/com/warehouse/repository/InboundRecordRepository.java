@@ -16,4 +16,10 @@ public interface InboundRecordRepository extends JpaRepository<InboundRecord, Lo
            "GROUP BY FUNCTION('DATE', ir.inboundTime) " +
            "ORDER BY d")
     List<Object[]> findDailyInboundTotals(@Param("startDate") LocalDateTime startDate);
+
+    @Query("SELECT ir.material.id, SUM(ir.quantity) " +
+           "FROM InboundRecord ir " +
+           "WHERE ir.inboundTime >= :start AND ir.inboundTime < :end " +
+           "GROUP BY ir.material.id")
+    List<Object[]> findMonthlyInboundByMaterial(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 }
