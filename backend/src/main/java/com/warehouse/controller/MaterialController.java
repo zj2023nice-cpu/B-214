@@ -8,6 +8,7 @@ import com.warehouse.entity.Material;
 import com.warehouse.entity.OperationType;
 import com.warehouse.service.MaterialService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -24,8 +25,13 @@ public class MaterialController {
     private final MaterialService materialService;
 
     @GetMapping
-    public ApiResponse<List<Material>> getAllMaterials() {
-        return ApiResponse.success(materialService.getAllMaterials());
+    public ApiResponse<Page<Material>> getAllMaterials(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String stockStatus,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ApiResponse.success(materialService.searchMaterials(keyword, categoryId, stockStatus, page, size));
     }
 
     @PostMapping

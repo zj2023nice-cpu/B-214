@@ -15,6 +15,14 @@ import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.poi.ss.usermodel.*;
 
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -40,6 +48,35 @@ public class MaterialService {
 
     public List<Material> getAllMaterials() {
         return materialRepository.findAll();
+    }
+
+    public Page<Material> searchMaterials(String keyword, Long categoryId, String stockStatus, int page, int size) {
+        Specification<Material> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                String pattern = "%" + keyword.trim() + "%";
+                Predicate codeLike = cb.like(root.get("code"), pattern);
+                Predicate nameLike = cb.like(root.get("name"), pattern);
+                Predicate specLike = cb.like(root.get("spec"), pattern);
+                predicates.add(cb.or(codeLike, nameLike, specLike));
+            }
+
+            if (categoryId != null) {
+                predicates.add(cb.equal(root.get("category").get("id"), categoryId));
+            }
+
+            if ("normal".equals(stockStatus)) {
+                predicates.add(cb.ge(root.get("stockQuantity"), root.get("alertThreshold")));
+            } else if ("warning".equals(stockStatus)) {
+                predicates.add(cb.lt(root.get("stockQuantity"), root.get("alertThreshold")));
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
+        return materialRepository.findAll(spec, pageable);
     }
 
     public Material getMaterialById(Long id) {

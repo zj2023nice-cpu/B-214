@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue';
 import axios from '../../api/axios';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Plus } from '@element-plus/icons-vue';
+import { Plus, Search } from '@element-plus/icons-vue';
 import type { UploadProps } from 'element-plus';
 
 const materials = ref([]);
@@ -16,6 +16,16 @@ const editingId = ref<number | null>(null);
 const imageList = ref<any[]>([]);
 const previewVisible = ref(false);
 const previewUrl = ref('');
+
+const keyword = ref('');
+const filterCategoryId = ref<number | null>(null);
+const filterStockStatus = ref('');
+const currentPage = ref(1);
+const pageSize = ref(10);
+const total = ref(0);
+
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
 const form = ref<any>({
   code: '',
   name: '',
@@ -29,10 +39,43 @@ const form = ref<any>({
 });
 
 const fetchMaterials = async () => {
-  const res: any = await axios.get('/materials');
+  const params: any = {
+    page: currentPage.value - 1,
+    size: pageSize.value,
+  };
+  if (keyword.value.trim()) params.keyword = keyword.value.trim();
+  if (filterCategoryId.value != null) params.categoryId = filterCategoryId.value;
+  if (filterStockStatus.value) params.stockStatus = filterStockStatus.value;
+
+  const res: any = await axios.get('/materials', { params });
   if (res.code === 200) {
-    materials.value = res.data;
+    materials.value = res.data.content;
+    total.value = res.data.totalElements;
   }
+};
+
+const handleSearchInput = () => {
+  if (debounceTimer) clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    currentPage.value = 1;
+    fetchMaterials();
+  }, 300);
+};
+
+const handleFilterChange = () => {
+  currentPage.value = 1;
+  fetchMaterials();
+};
+
+const handlePageChange = (page: number) => {
+  currentPage.value = page;
+  fetchMaterials();
+};
+
+const handleSizeChange = (size: number) => {
+  pageSize.value = size;
+  currentPage.value = 1;
+  fetchMaterials();
 };
 
 const fetchBasicData = async () => {
@@ -223,7 +266,36 @@ onMounted(() => {
 
 <template>
   <div class="material-container">
-    <div class="header-actions">
+    <div class="filter-bar">
+      <el-input
+        v-model="keyword"
+        placeholder="搜索编号/名称/规格"
+        clearable
+        :prefix-icon="Search"
+        style="width: 260px;"
+        @input="handleSearchInput"
+        @clear="handleSearchInput"
+      />
+      <el-select
+        v-model="filterCategoryId"
+        placeholder="按分类筛选"
+        clearable
+        style="width: 160px; margin-left: 12px;"
+        @change="handleFilterChange"
+      >
+        <el-option v-for="cat in categories" :key="cat.id" :label="cat.name" :value="cat.id" />
+      </el-select>
+      <el-select
+        v-model="filterStockStatus"
+        placeholder="库存状态"
+        clearable
+        style="width: 140px; margin-left: 12px;"
+        @change="handleFilterChange"
+      >
+        <el-option label="正常" value="normal" />
+        <el-option label="预警" value="warning" />
+      </el-select>
+      <div style="flex: 1;" />
       <el-button type="primary" @click="handleAdd">新增物资</el-button>
       <el-upload
         :show-file-list="false"
@@ -289,6 +361,18 @@ onMounted(() => {
         </template>
       </el-table-column>
     </el-table>
+
+    <div class="pagination-wrapper">
+      <el-pagination
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :page-sizes="[10, 20, 50, 100]"
+        :total="total"
+        layout="total, sizes, prev, pager, next, jumper"
+        @size-change="handleSizeChange"
+        @current-change="handlePageChange"
+      />
+    </div>
 
     <el-dialog v-model="dialogVisible" :title="editingId ? '编辑物资' : '新增物资'" width="650px">
       <el-form :model="form" label-width="100px">
@@ -407,12 +491,22 @@ onMounted(() => {
   background-color: white;
   border-radius: 8px;
 }
-.header-actions {
+.filter-bar {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 0;
 }
 .warning-row {
-  --el-table-tr-bg-color: var(--el-color-warning-light-9);
+  --el-table-tr-bg-color: #fef0f0;
+}
+.warning-row td.el-table__cell {
+  color: #f56c6c !important;
+}
+.pagination-wrapper {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
 }
 .thumbnail-wrapper {
   position: relative;
