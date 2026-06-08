@@ -119,6 +119,15 @@ const handleDeleteShelf = (id: number) => {
   });
 };
 
+const getLoadRate = (shelf: any) => {
+  if (!shelf.capacity || shelf.capacity === 0) return 0;
+  return Math.round((shelf.currentLoad || 0) / shelf.capacity * 100);
+};
+
+const isOverloaded = (shelf: any) => {
+  return getLoadRate(shelf) > 90;
+};
+
 onMounted(() => {
   fetchWarehouses();
 });
@@ -181,6 +190,29 @@ onMounted(() => {
         <el-table-column prop="code" label="货架编号" />
         <el-table-column prop="name" label="货架名称" />
         <el-table-column prop="capacity" label="容量" />
+        <el-table-column label="承载量">
+          <template #default="scope">
+            {{ scope.row.currentLoad || 0 }} / {{ scope.row.capacity || 0 }}
+          </template>
+        </el-table-column>
+        <el-table-column label="使用率" width="180">
+          <template #default="scope">
+            <div :style="{ color: isOverloaded(scope.row) ? '#F56C6C' : '', fontWeight: isOverloaded(scope.row) ? 'bold' : 'normal' }">
+              <el-progress
+                :percentage="getLoadRate(scope.row)"
+                :color="isOverloaded(scope.row) ? '#F56C6C' : '#409EFF'"
+                :stroke-width="16"
+                :text-inside="true"
+                style="width: 150px"
+              />
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="预警" width="80" align="center">
+          <template #default="scope">
+            <el-tag v-if="isOverloaded(scope.row)" type="danger" size="small">超载</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="100">
           <template #default="scope">
             <el-button size="small" type="danger" @click="handleDeleteShelf(scope.row.id)">删除</el-button>

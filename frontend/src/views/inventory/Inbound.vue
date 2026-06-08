@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import axios from '../../api/axios';
 import { ElMessage } from 'element-plus';
 
 const materials = ref([]);
 const suppliers = ref([]);
 const warehouses = ref([]);
+const shelves = ref([]);
 const form = ref({
   serialNo: '',
   warehouse: { id: null as number | null },
+  shelf: { id: null as number | null },
   material: { id: null as number | null },
   quantity: 1,
   price: 0,
@@ -31,6 +33,24 @@ const fetchWarehouses = async () => {
   if (res.code === 200) warehouses.value = res.data;
 };
 
+const fetchShelves = async (warehouseId: number) => {
+  if (!warehouseId) {
+    shelves.value = [];
+    return;
+  }
+  const res: any = await axios.get(`/warehouses/${warehouseId}/shelves`);
+  if (res.code === 200) shelves.value = res.data;
+};
+
+watch(() => form.value.warehouse.id, (newVal) => {
+  form.value.shelf.id = null;
+  if (newVal) {
+    fetchShelves(newVal);
+  } else {
+    shelves.value = [];
+  }
+});
+
 const generateSerialNo = () => {
   const now = new Date();
   const timestamp = now.getFullYear().toString() +
@@ -51,6 +71,7 @@ const handleSubmit = async () => {
   const payload = { ...form.value };
   if (!payload.supplier.id) payload.supplier = null;
   if (!payload.warehouse.id) payload.warehouse = null;
+  if (!payload.shelf.id) payload.shelf = null;
   
   const res: any = await axios.post('/inventory/inbound', payload);
   if (res.code === 200) {
@@ -58,6 +79,7 @@ const handleSubmit = async () => {
     form.value = {
       serialNo: '',
       warehouse: { id: null },
+      shelf: { id: null },
       material: { id: null },
       quantity: 1,
       price: 0,
@@ -100,6 +122,11 @@ onMounted(() => {
         <el-form-item label="入库仓库">
           <el-select v-model="form.warehouse.id" filterable placeholder="请选择入库仓库" style="width: 100%">
             <el-option v-for="w in warehouses" :key="w.id" :label="`${w.code} - ${w.name}`" :value="w.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="入库货架">
+          <el-select v-model="form.shelf.id" filterable placeholder="请选择入库货架" style="width: 100%" :disabled="!form.warehouse.id">
+            <el-option v-for="s in shelves" :key="s.id" :label="`${s.code} - ${s.name}`" :value="s.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="选择物资">

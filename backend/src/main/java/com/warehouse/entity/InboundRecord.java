@@ -32,6 +32,10 @@ public class InboundRecord {
     private Warehouse warehouse;
 
     @ManyToOne
+    @JoinColumn(name = "shelf_id")
+    private Shelf shelf;
+
+    @ManyToOne
     @JoinColumn(name = "supplier_id")
     private Supplier supplier;
     

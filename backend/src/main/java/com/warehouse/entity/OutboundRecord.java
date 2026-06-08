@@ -31,6 +31,10 @@ public class OutboundRecord {
     @JoinColumn(name = "warehouse_id")
     private Warehouse warehouse;
 
+    @ManyToOne
+    @JoinColumn(name = "shelf_id")
+    private Shelf shelf;
+
     private String department;
     
     private String remark;

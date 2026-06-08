@@ -19,6 +19,9 @@ public class Shelf {
 
     private Integer capacity;
 
+    @Column(nullable = false)
+    private Integer currentLoad = 0;
+
     @ManyToOne
     @JoinColumn(name = "warehouse_id", nullable = false)
     private Warehouse warehouse;

@@ -5,10 +5,12 @@ import com.warehouse.dto.TurnoverRateDTO;
 import com.warehouse.entity.InboundRecord;
 import com.warehouse.entity.Material;
 import com.warehouse.entity.OutboundRecord;
+import com.warehouse.entity.Shelf;
 import com.warehouse.entity.Warehouse;
 import com.warehouse.repository.InboundRecordRepository;
 import com.warehouse.repository.MaterialRepository;
 import com.warehouse.repository.OutboundRecordRepository;
+import com.warehouse.repository.ShelfRepository;
 import com.warehouse.repository.WarehouseRepository;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
@@ -31,6 +33,7 @@ public class InventoryService {
     private final OutboundRecordRepository outboundRecordRepository;
     private final MaterialRepository materialRepository;
     private final WarehouseRepository warehouseRepository;
+    private final ShelfRepository shelfRepository;
     private final WarehouseInventoryService warehouseInventoryService;
     private final NotificationService notificationService;
 
@@ -53,6 +56,20 @@ public class InventoryService {
         } else {
             material.setStockQuantity(material.getStockQuantity() + record.getQuantity());
             materialRepository.save(material);
+        }
+
+        if (record.getShelf() != null && record.getShelf().getId() != null) {
+            Shelf shelf = shelfRepository.findById(record.getShelf().getId())
+                    .orElseThrow(() -> new RuntimeException("Shelf not found"));
+            int newLoad = shelf.getCurrentLoad() + record.getQuantity();
+            if (shelf.getCapacity() != null && newLoad > shelf.getCapacity()) {
+                throw new RuntimeException("货架超载！当前承载量：" + shelf.getCurrentLoad()
+                        + "，入库数量：" + record.getQuantity()
+                        + "，容量上限：" + shelf.getCapacity());
+            }
+            shelf.setCurrentLoad(newLoad);
+            shelfRepository.save(shelf);
+            record.setShelf(shelf);
         }
 
         InboundRecord saved = inboundRecordRepository.save(record);
@@ -91,6 +108,19 @@ public class InventoryService {
             }
             material.setStockQuantity(material.getStockQuantity() - record.getQuantity());
             materialRepository.save(material);
+        }
+
+        if (record.getShelf() != null && record.getShelf().getId() != null) {
+            Shelf shelf = shelfRepository.findById(record.getShelf().getId())
+                    .orElseThrow(() -> new RuntimeException("Shelf not found"));
+            int newLoad = shelf.getCurrentLoad() - record.getQuantity();
+            if (newLoad < 0) {
+                throw new RuntimeException("货架承载量不足！当前承载量：" + shelf.getCurrentLoad()
+                        + "，出库数量：" + record.getQuantity());
+            }
+            shelf.setCurrentLoad(newLoad);
+            shelfRepository.save(shelf);
+            record.setShelf(shelf);
         }
 
         OutboundRecord saved = outboundRecordRepository.save(record);
